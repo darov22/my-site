@@ -1,11 +1,236 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Мой сайт</title>
+  <meta charset="UTF-8" />
+  <title>Black & Orange</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #0b0b0b;
+      --bg-soft: #111;
+      --orange: #ff8c00;
+      --orange-glow: rgba(255, 140, 0, 0.4);
+      --text: #f5f5f5;
+      --muted: #b0b0b0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #141414, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 32px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1f1f1f;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 2px;
+    }
+
+    nav a {
+      color: var(--muted);
+      margin-left: 24px;
+      text-decoration: none;
+      position: relative;
+      transition: color 0.3s;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -6px;
+      width: 0;
+      height: 2px;
+      background: var(--orange);
+      transition: width 0.3s;
+    }
+
+    nav a:hover {
+      color: var(--text);
+    }
+
+    nav a:hover::after {
+      width: 100%;
+    }
+
+    main {
+      padding: 80px 48px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      font-size: 56px;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 span {
+      color: var(--orange);
+      text-shadow: 0 0 20px var(--orange-glow);
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 18px;
+      margin-bottom: 32px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--orange);
+      color: #000;
+      box-shadow: 0 0 25px var(--orange-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 40px var(--orange-glow);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid #333;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .card-grid {
+      margin-top: 96px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, #141414, #0d0d0d);
+      border: 1px solid #1f1f1f;
+      border-radius: 16px;
+      padding: 32px;
+      transition: transform 0.3s, border 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: var(--orange);
+      box-shadow: 0 0 30px rgba(255, 140, 0, 0.15);
+    }
+
+    .card h3 {
+      margin-bottom: 12px;
+      color: var(--orange);
+    }
+
+    .card p {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    footer {
+      padding: 32px 48px;
+      border-top: 1px solid #1f1f1f;
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 42px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h1>Сайт работает 🚀</h1>
-    <button onclick="alert('Кнопка нажата!')">Нажми</button>
+
+<header>
+  <div class="logo">ORANGE</div>
+  <nav>
+    <a href="#">Главная</a>
+    <a href="#">О нас</a>
+    <a href="#">Проекты</a>
+    <a href="#">Контакты</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div>
+      <h1>Минимализм в <span>чёрно‑оранжевом</span> стиле</h1>
+      <p>
+        Чистый дизайн без изображений. Только форма, цвет и аккуратные
+        анимации — выглядит современно и дорого.
+      </p>
+      <div class="buttons">
+        <button class="btn btn-primary">Начать</button>
+        <button class="btn btn-outline">Подробнее</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card-grid">
+    <div class="card">
+      <h3>Современный</h3>
+      <p>Минимум шума, максимум визуального стиля и контраста.</p>
+    </div>
+    <div class="card">
+      <h3>Быстрый</h3>
+      <p>Нет картинок — сайт загружается моментально.</p>
+    </div>
+    <div class="card">
+      <h3>Адаптивный</h3>
+      <p>Идеально смотрится на ПК, планшете и телефоне.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  © 2026 Black & Orange Design
+</footer>
+
 </body>
 </html>
