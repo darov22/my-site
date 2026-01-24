@@ -132,13 +132,15 @@
 
     .card-grid {
       margin-top: 96px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      display: flex;
       gap: 24px;
-      text-align: left;
+      justify-content: center;
+      flex-wrap: wrap;
+      text-align: center;
     }
 
     .card {
+      flex: 0 0 280px;
       background: linear-gradient(180deg, #141414, #0d0d0d);
       border: 1px solid #1f1f1f;
       border-radius: 16px;
@@ -182,7 +184,11 @@
       }
 
       .card-grid {
-        text-align: center;
+        flex-direction: column;
+      }
+
+      .card {
+        width: 100%;
       }
     }
   </style>
