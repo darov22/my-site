@@ -25,6 +25,8 @@
       background: radial-gradient(circle at top, #141414, var(--bg));
       color: var(--text);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
@@ -70,16 +72,15 @@
     }
 
     main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       padding: 80px 48px;
       max-width: 1200px;
       margin: auto;
-    }
-
-    .hero {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 48px;
-      align-items: center;
+      text-align: center;
+      flex-direction: column;
     }
 
     .hero h1 {
@@ -101,12 +102,12 @@
 
     .buttons {
       display: flex;
-      gap: 16px;
       width: 100%;
+      justify-content: center;
     }
 
     .btn {
-      flex: 1;
+      flex: 0 0 300px;
       padding: 28px 0;
       border-radius: 12px;
       border: none;
@@ -131,6 +132,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 24px;
+      text-align: left;
     }
 
     .card {
@@ -166,10 +168,6 @@
     }
 
     @media (max-width: 900px) {
-      .hero {
-        grid-template-columns: 1fr;
-      }
-
       .hero h1 {
         font-size: 42px;
       }
@@ -178,6 +176,10 @@
         width: 100%;
         font-size: 26px;
         padding: 32px 0;
+      }
+
+      .card-grid {
+        text-align: center;
       }
     }
   </style>
@@ -196,16 +198,11 @@
 
 <main>
   <section class="hero">
-    <div>
       <h1>Минимализм в <span>чёрно-оранжевом</span> стиле</h1>
-      <p>
-        Чистый дизайн без изображений. Только форма, цвет и аккуратные
-        анимации — выглядит современно и дорого.
-      </p>
+      <p>Чистый дизайн без изображений. Только форма, цвет и аккуратные анимации — выглядит современно и дорого.</p>
       <div class="buttons">
         <button class="btn btn-primary">Установить</button>
       </div>
-    </div>
   </section>
 
   <section class="card-grid">
