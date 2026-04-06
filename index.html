@@ -1,252 +1,129 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Black & Orange</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root {
-      --bg: #0b0b0b;
-      --bg-soft: #111;
-      --orange: #ff8c00;
-      --orange-glow: rgba(255, 140, 0, 0.4);
-      --text: #f5f5f5;
-      --muted: #b0b0b0;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-
+<meta charset="UTF-8">
+<title>Music Player</title>
+<style>
     body {
-      background: radial-gradient(circle at top, #141414, var(--bg));
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+        margin: 0;
+        font-family: Arial;
+        background: #121212;
+        color: white;
+        text-align: center;
     }
 
-    header {
-      padding: 32px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #1f1f1f;
+    .player {
+        margin-top: 50px;
     }
 
-    .logo {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--orange);
-      letter-spacing: 2px;
+    button {
+        padding: 10px 20px;
+        margin: 10px;
+        border: none;
+        border-radius: 10px;
+        background: #1db954;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
     }
 
-    nav a {
-      color: var(--muted);
-      margin-left: 24px;
-      text-decoration: none;
-      position: relative;
-      transition: color 0.3s;
+    button:hover {
+        background: #17a74a;
     }
 
-    nav a::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      bottom: -6px;
-      width: 0;
-      height: 2px;
-      background: var(--orange);
-      transition: width 0.3s;
+    .song {
+        cursor: pointer;
+        padding: 10px;
+        border-bottom: 1px solid #333;
     }
 
-    nav a:hover {
-      color: var(--text);
+    .song:hover {
+        background: #222;
     }
-
-    nav a:hover::after {
-      width: 100%;
-    }
-
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 80px 48px;
-      max-width: 1200px;
-      margin: auto;
-      text-align: center;
-      flex-direction: column;
-    }
-
-    .hero h1 {
-      font-size: 56px;
-      line-height: 1.1;
-      margin-bottom: 24px;
-    }
-
-    .hero h1 span {
-      color: var(--orange);
-      text-shadow: 0 0 20px var(--orange-glow);
-    }
-
-    .hero p {
-      color: var(--muted);
-      font-size: 18px;
-      margin-bottom: 32px;
-    }
-
-    .buttons {
-      display: flex;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .btn {
-      flex: 0 0 300px;
-      padding: 28px 0;
-      border-radius: 12px;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-      text-decoration: none;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .btn-primary {
-      background: var(--orange);
-      color: #000;
-      box-shadow: 0 0 40px var(--orange-glow);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 60px var(--orange-glow);
-    }
-
-    .card-grid {
-      margin-top: 96px;
-      display: flex;
-      gap: 24px;
-      justify-content: center;
-      flex-wrap: wrap;
-      text-align: center;
-    }
-
-    .card {
-      flex: 0 0 350px;
-      background: linear-gradient(180deg, #141414, #0d0d0d);
-      border: 1px solid #1f1f1f;
-      border-radius: 16px;
-      padding: 32px;
-      transition: transform 0.3s, border 0.3s, box-shadow 0.3s;
-    }
-
-    .card:hover {
-      transform: translateY(-6px);
-      border-color: var(--orange);
-      box-shadow: 0 0 30px rgba(255, 140, 0, 0.15);
-    }
-
-    .card h3 {
-      margin-bottom: 12px;
-      color: var(--orange);
-    }
-
-    .card p {
-      color: var(--muted);
-      font-size: 15px;
-      margin-bottom: 16px;
-    }
-
-    .card .btn-primary {
-      width: 100%;
-      padding: 20px 0;
-      font-size: 20px;
-    }
-
-    footer {
-      padding: 32px 48px;
-      border-top: 1px solid #1f1f1f;
-      color: var(--muted);
-      text-align: center;
-      font-size: 14px;
-    }
-
-    @media (max-width: 900px) {
-      .hero h1 {
-        font-size: 42px;
-      }
-
-      .btn {
-        width: 100%;
-        font-size: 26px;
-        padding: 32px 0;
-      }
-
-      .card-grid {
-        flex-direction: column;
-      }
-
-      .card {
-        width: 100%;
-      }
-
-      .card .btn-primary {
-        width: 100%;
-        padding: 24px 0;
-      }
-    }
-  </style>
+</style>
 </head>
 <body>
 
-<header>
-  <div class="logo">ORANGE</div>
-  <nav>
-    <a href="#">Главная</a>
-    <a href="#">Обновления</a>
-    <a href="#">Дневник</a>
-    <a href="https://donatello.to/Nays-Studio" target="_blank">Пожертвования</a>
-    <a href="#">О нас</a>
-  </nav>
-</header>
+<h1>🎵 Мой плеер</h1>
 
-<main>
-  <section class="hero">
-      <h1>Стань легендой в <span>Mobile Mythics Legends!</span></h1>
-      <p>Скачай игру прямо сейчас и начни своё эпическое приключение!</p>
-      <div class="buttons">
-        <button class="btn btn-primary">Установить</button>
-      </div>
-  </section>
+<div class="player">
+    <audio id="audio"></audio>
 
-  <section class="card-grid">
-    <div class="card">
-      <h3>Установить Движок</h3>
-      <p>Мощный движок для создания карт, настройки всех параметров и генерации текстур-паков для игры.</p>
+    <div>
+        <button onclick="prev()">⏮</button>
+        <button onclick="play()">▶ / ⏸</button>
+        <button onclick="next()">⏭</button>
     </div>
-    <div class="card">
-      <h3>Связь</h3>
-      <p>Поддержка и новости в нашем официальном канале Telegram.</p>
-      <a href="https://t.me/MML_Official_channel" target="_blank" class="btn btn-primary">Перейти</a>
-    </div>
-    <div class="card">
-      <h3>Адаптивный</h3>
-      <p>Идеально смотрится на ПК, планшете и телефоне.</p>
-    </div>
-  </section>
-</main>
 
-<footer>
-  © 2026 Black & Orange Design
-</footer>
+    <h2 id="title">Ничего не играет</h2>
+</div>
+
+<div id="playlist"></div>
+
+<script>
+const songs = [
+    {
+        title: "Трек 1",
+        src: "music/song1.mp3"
+    },
+    {
+        title: "Трек 2",
+        src: "music/song2.mp3"
+    },
+    {
+        title: "Трек 3",
+        src: "music/song3.mp3"
+    }
+];
+
+let current = 0;
+const audio = document.getElementById("audio");
+const title = document.getElementById("title");
+const playlist = document.getElementById("playlist");
+
+function loadSong(index) {
+    current = index;
+    audio.src = songs[index].src;
+    title.innerText = songs[index].title;
+}
+
+function play() {
+    if (audio.paused) {
+        audio.play();
+    } else {
+        audio.pause();
+    }
+}
+
+function next() {
+    current++;
+    if (current >= songs.length) current = 0;
+    loadSong(current);
+    audio.play();
+}
+
+function prev() {
+    current--;
+    if (current < 0) current = songs.length - 1;
+    loadSong(current);
+    audio.play();
+}
+
+// создаем плейлист
+songs.forEach((song, index) => {
+    const div = document.createElement("div");
+    div.className = "song";
+    div.innerText = song.title;
+    div.onclick = () => {
+        loadSong(index);
+        audio.play();
+    };
+    playlist.appendChild(div);
+});
+
+// загрузка первой песни
+loadSong(0);
+</script>
 
 </body>
 </html>
