@@ -15,113 +15,81 @@ body {
 
 /* Контент */
 .content {
-    padding-bottom: 140px; /* оставляем место под плеер и панель */
+    padding-bottom: 240px; /* место под плеер + панель */
 }
 
-/* Список треков */
+/* Плеер */
+.player {
+    position: fixed;
+    bottom: 90px; /* над нижней панелью */
+    left: 0;
+    width: 100%;
+    background: rgba(25,25,25,0.95);
+    backdrop-filter: blur(15px);
+    padding: 15px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-top-left-radius: 25px;
+    border-top-right-radius: 25px;
+    box-shadow: 0 -0 25px rgba(255,122,0,0.5);
+    transform: translateY(120px); /* изначально скрыт */
+    transition: transform 0.5s ease;
+    z-index: 100;
+}
+
+.player.show {
+    transform: translateY(0); /* выезжает над панелью */
+}
+
+/* Кнопки плеера */
+.player button {
+    padding: 15px 25px;
+    margin: 5px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #ff7a00, #ffbb33);
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.player button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 15px #ff7a00;
+}
+
+/* Название трека */
+#title {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 0 10px #ff7a00;
+    animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+    0% { text-shadow: 0 0 5px #ff7a00; }
+    100% { text-shadow: 0 0 15px #ff7a00; }
+}
+
+/* Список песен */
 .song {
     padding: 12px;
     border-bottom: 1px solid #222;
     cursor: pointer;
     transition: 0.3s;
 }
+
 .song:hover {
     background: #1a1a1a;
 }
 
-/* ===== Плеер ===== */
-.player-container {
-    position: fixed;
-    bottom: 15px; /* чуть выше панели */
-    left: 10px;
-    right: 10px;
-    background: rgba(20,20,20,0.95);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 -5px 25px rgba(255,122,0,0.4);
-    border-radius: 25px;
-    padding: 15px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    transition: transform 0.5s ease;
-    z-index: 100;
-    transform: translateY(80px); /* изначально почти скрыт */
-}
-
-/* верхняя «ручка» для визуальной подсказки */
-.player-handle {
-    width: 60px;
-    height: 6px;
-    background: #ff7a00;
-    border-radius: 3px;
-    margin-bottom: 10px;
-}
-
-/* кнопки плеера */
-.player-buttons {
-    display: flex;
-    gap: 20px;
-    margin-top: 10px;
-}
-
-.player-buttons button {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    background: linear-gradient(145deg, #ff7a00, #ff4500);
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    transition: 0.3s;
-    box-shadow: 0 4px 12px rgba(255,122,0,0.5);
-    position: relative;
-}
-
-.player-buttons button:hover {
-    transform: scale(1.15);
-    box-shadow: 0 6px 20px rgba(255,122,0,0.7);
-}
-
-.player-buttons button:active {
-    transform: scale(1);
-}
-
-#play-btn.playing::after {
-    content: "";
-    position: absolute;
-    top: -10px; left: -10px; right: -10px; bottom: -10px;
-    border-radius: 50%;
-    background: rgba(255,122,0,0.2);
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(0.8); opacity: 0.5; }
-    50% { transform: scale(1.2); opacity: 0.1; }
-    100% { transform: scale(0.8); opacity: 0.5; }
-}
-
-/* Плеер текст */
-#title {
-    margin-top: 15px;
-    font-size: 18px;
-    font-weight: bold;
-    max-width: 90%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* при активном треке плеер выезжает */
-.player-container.active {
-    transform: translateY(0);
-}
-
-/* ===== ПАНЕЛЬ ===== */
+/* Нижняя панель */
 .navbar {
     position: fixed;
-    bottom: 15px;
+    bottom: 0; /* всегда внизу */
     left: 10px;
     right: 10px;
     height: 75px;
@@ -132,6 +100,8 @@ body {
     justify-content: space-around;
     align-items: center;
     box-shadow: 0 0 20px rgba(255,122,0,0.4);
+    z-index: 99;
+    transition: bottom 0.5s ease;
 }
 
 .nav-item {
@@ -139,43 +109,39 @@ body {
     font-size: 13px;
     cursor: pointer;
     transition: 0.3s;
+    user-select: none;
 }
+
 .nav-item.active {
     color: #ff7a00;
     text-shadow: 0 0 10px rgba(255,122,0,0.7);
 }
 
 /* секции */
-.section {
-    display: none;
-}
-.section.active {
-    display: block;
-}
+.section { display: none; }
+.section.active { display: block; }
 
-/* 📱 адаптация под телефон */
+/* 📱 адаптация */
 @media (max-width: 600px) {
     .navbar {
         height: 90px;
-        border-radius: 30px;
     }
 
     .nav-item {
         font-size: 15px;
     }
 
-    .player-buttons button {
-        width: 80px;
-        height: 80px;
-        font-size: 24px;
+    .player button {
+        padding: 18px 30px;
+        font-size: 20px;
     }
 
     #title {
-        font-size: 16px;
+        font-size: 20px;
     }
 
-    .player-container {
-        padding: 20px;
+    .content {
+        padding-bottom: 270px;
     }
 }
 </style>
@@ -208,18 +174,17 @@ body {
 </div>
 
 <!-- Плеер -->
-<div class="player-container" id="player">
-    <div class="player-handle"></div>
+<div class="player" id="player">
     <audio id="audio"></audio>
-    <div class="player-buttons">
+    <div>
         <button onclick="prev()">⏮</button>
-        <button id="play-btn" onclick="play()">▶</button>
+        <button onclick="play()">▶ / ⏸</button>
         <button onclick="next()">⏭</button>
     </div>
-    <div id="title">Ничего не играет</div>
+    <h2 id="title">Ничего не играет</h2>
 </div>
 
-<!-- ПАНЕЛЬ -->
+<!-- Нижняя панель -->
 <div class="navbar">
     <div class="nav-item active" onclick="openTab('home', this)">🏠<br>Дом</div>
     <div class="nav-item" onclick="openTab('top', this)">🔥<br>Топ</div>
@@ -229,68 +194,35 @@ body {
 
 <script>
 const songs = [
-    {title: "Трек 1", src: "https://darov22.github.io/my-site/music/song1.mp3"},
-    {title: "Трек 2", src: "https://darov22.github.io/my-site/music/song2.mp3"}
+    { title: "Трек 1", src: "https://darov22.github.io/my-site/music/song1.mp3" },
+    { title: "Трек 2", src: "https://darov22.github.io/my-site/music/song2.mp3" },
 ];
 
 let current = 0;
 const audio = document.getElementById("audio");
 const title = document.getElementById("title");
 const playlist = document.getElementById("playlist");
-const playerContainer = document.getElementById("player");
-const playBtn = document.getElementById("play-btn");
+const player = document.getElementById("player");
 
-// Загрузка трека
 function loadSong(index) {
     current = index;
     audio.src = songs[index].src;
     title.innerText = songs[index].title;
 
-    // показываем плеер с анимацией
-    playerContainer.classList.add("active");
+    // показываем плеер при выборе трека
+    if(!player.classList.contains("show")) player.classList.add("show");
 }
 
-// Воспроизведение / пауза
-function play() {
-    if (audio.paused) {
-        audio.play();
-        playBtn.innerText = "⏸";
-        playBtn.classList.add("playing");
-    } else {
-        audio.pause();
-        playBtn.innerText = "▶";
-        playBtn.classList.remove("playing");
-    }
-}
+function play() { audio.paused ? audio.play() : audio.pause(); }
+function next() { current = (current + 1) % songs.length; loadSong(current); audio.play(); }
+function prev() { current = (current - 1 + songs.length) % songs.length; loadSong(current); audio.play(); }
 
-// Следующий / предыдущий
-function next() {
-    current = (current + 1) % songs.length;
-    loadSong(current);
-    audio.play();
-    playBtn.innerText = "⏸";
-    playBtn.classList.add("playing");
-}
-
-function prev() {
-    current = (current - 1 + songs.length) % songs.length;
-    loadSong(current);
-    audio.play();
-    playBtn.innerText = "⏸";
-    playBtn.classList.add("playing");
-}
-
-// Генерация списка
+// список песен
 songs.forEach((song, index) => {
     const div = document.createElement("div");
     div.className = "song";
     div.innerText = song.title;
-    div.onclick = () => {
-        loadSong(index);
-        audio.play();
-        playBtn.innerText = "⏸";
-        playBtn.classList.add("playing");
-    };
+    div.onclick = () => { loadSong(index); audio.play(); };
     playlist.appendChild(div);
 });
 
@@ -298,7 +230,6 @@ songs.forEach((song, index) => {
 function openTab(tabId, el) {
     document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
     document.getElementById(tabId).classList.add("active");
-
     document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
     el.classList.add("active");
 }
