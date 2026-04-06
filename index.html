@@ -29,7 +29,7 @@ body { margin:0; font-family: Arial, sans-serif; background: #0f0f0f; color:whit
 }
 .player.show { transform: translateY(0); opacity:1; }
 
-/* Кнопка закрытия */
+/* Закрыть */
 .close-btn {
     position: absolute;
     top: 10px; left: 15px;
@@ -38,50 +38,79 @@ body { margin:0; font-family: Arial, sans-serif; background: #0f0f0f; color:whit
     border: none;
     color: #ff7a00;
     cursor: pointer;
-    transition: transform 0.2s, color 0.2s;
 }
-.close-btn:hover { transform: scale(1.2); color:#ffbb33; }
+.close-btn:hover { transform: scale(1.2); }
 
-/* Кнопки плеера */
-.player button { padding:15px 25px; margin:5px; border:none; border-radius:50px; background:linear-gradient(135deg,#ff7a00,#ffbb33); color:white; cursor:pointer; font-size:18px; transition: transform 0.2s, box-shadow 0.2s; }
-.player button:hover { transform: scale(1.1); box-shadow:0 0 15px #ff7a00; }
+/* Кнопки */
+.player button {
+    padding:15px 25px;
+    margin:5px;
+    border:none;
+    border-radius:50px;
+    background:linear-gradient(135deg,#ff7a00,#ffbb33);
+    color:white;
+    cursor:pointer;
+    font-size:18px;
+}
 
-/* Название трека */
-#title { margin-top:10px; font-size:18px; font-weight:bold; text-shadow:0 0 10px #ff7a00; animation: glow 1.5s infinite alternate; }
-@keyframes glow { 0%{text-shadow:0 0 5px #ff7a00;} 100%{text-shadow:0 0 15px #ff7a00;} }
+/* Название */
+#title {
+    margin-top:10px;
+    font-size:18px;
+    font-weight:bold;
+}
 
-/* Список песен */
-.song { padding:12px; border-bottom:1px solid #222; cursor:pointer; transition:0.3s; }
+/* Прогресс */
+.progress-container {
+    width: 90%;
+    margin-top:10px;
+}
+
+.progress {
+    width: 100%;
+    height: 6px;
+    background: #333;
+    border-radius: 10px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg,#ff7a00,#ffbb33);
+    transition: width 0.2s linear;
+}
+
+/* Время */
+.time {
+    display:flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-top:5px;
+    color:#aaa;
+}
+
+/* Список */
+.song { padding:12px; border-bottom:1px solid #222; cursor:pointer; }
 .song:hover { background:#1a1a1a; }
 
-/* Нижняя панель */
+/* Navbar */
 .navbar {
     position: fixed; bottom:0; left:10px; right:10px; height:75px;
     background: rgba(20,20,20,0.9);
-    backdrop-filter: blur(10px);
     border-radius:25px;
     display:flex;
     justify-content: space-around;
     align-items:center;
-    box-shadow:0 0 20px rgba(255,122,0,0.4);
-    z-index:99;
 }
 
-.nav-item { color:#888; font-size:13px; cursor:pointer; transition:0.3s; user-select:none; }
-.nav-item.active { color:#ff7a00; text-shadow:0 0 10px rgba(255,122,0,0.7); }
+.nav-item { color:#888; font-size:13px; cursor:pointer; }
+.nav-item.active { color:#ff7a00; }
 
 /* Секции */
 .section { display:none; }
 .section.active { display:block; }
-
-/* Адаптация под телефон */
-@media(max-width:600px){
-    .navbar{height:90px;}
-    .nav-item{font-size:15px;}
-    .player button{padding:18px 30px; font-size:20px;}
-    #title{font-size:20px;}
-    .content{padding-bottom:270px;}
-}
 </style>
 </head>
 <body>
@@ -91,29 +120,38 @@ body { margin:0; font-family: Arial, sans-serif; background: #0f0f0f; color:whit
     <h1>🏠 Главная</h1>
     <div id="playlist"></div>
 </div>
-<div id="top" class="section"><h1>🔥 Топ музыка</h1></div>
-<div id="playlists" class="section"><h1>📁 Плейлисты</h1></div>
-<div id="profile" class="section"><h1>👤 Профиль</h1></div>
 </div>
 
 <!-- Плеер -->
 <div class="player" id="player">
     <button class="close-btn" onclick="closePlayer()">✖</button>
+
     <audio id="audio"></audio>
+
     <div>
         <button onclick="prev()">⏮</button>
         <button onclick="play()">▶ / ⏸</button>
         <button onclick="next()">⏭</button>
     </div>
+
     <h2 id="title">Ничего не играет</h2>
+
+    <!-- Прогресс -->
+    <div class="progress-container">
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="time">
+            <span id="currentTime">0:00</span>
+            <span id="duration">0:00</span>
+        </div>
+    </div>
 </div>
 
-<!-- Нижняя панель -->
+<!-- Navbar -->
 <div class="navbar">
-    <div class="nav-item active" onclick="openTab('home',this)">🏠<br>Дом</div>
-    <div class="nav-item" onclick="openTab('top',this)">🔥<br>Топ</div>
-    <div class="nav-item" onclick="openTab('playlists',this)">📁<br>Плейлисты</div>
-    <div class="nav-item" onclick="openTab('profile',this)">👤<br>Профиль</div>
+    <div class="nav-item active">🏠<br>Дом</div>
 </div>
 
 <script>
@@ -123,12 +161,27 @@ const songs = [
 ];
 
 let current = 0;
+
 const audio = document.getElementById("audio");
 const title = document.getElementById("title");
 const playlist = document.getElementById("playlist");
 const player = document.getElementById("player");
 
-// Загрузка трека и показ плеера
+const progress = document.getElementById("progress");
+const progressBar = document.getElementById("progressBar");
+
+const currentTimeEl = document.getElementById("currentTime");
+const durationEl = document.getElementById("duration");
+
+// Формат времени
+function formatTime(sec){
+    let m = Math.floor(sec / 60);
+    let s = Math.floor(sec % 60);
+    if(s < 10) s = "0" + s;
+    return m + ":" + s;
+}
+
+// Загрузка
 function loadSong(index){
     current = index;
     audio.src = songs[index].src;
@@ -136,19 +189,55 @@ function loadSong(index){
     player.classList.add("show");
 }
 
-// Управление музыкой
-function play(){ audio.paused ? audio.play() : audio.pause(); }
-function next(){ current=(current+1)%songs.length; loadSong(current); audio.play(); }
-function prev(){ current=(current-1+songs.length)%songs.length; loadSong(current); audio.play(); }
+// Play
+function play(){
+    audio.paused ? audio.play() : audio.pause();
+}
 
-// Закрытие плеера
+// Next / Prev
+function next(){
+    current = (current + 1) % songs.length;
+    loadSong(current);
+    audio.play();
+}
+
+function prev(){
+    current = (current - 1 + songs.length) % songs.length;
+    loadSong(current);
+    audio.play();
+}
+
+// Обновление времени
+audio.addEventListener("timeupdate", () => {
+    const currentTime = audio.currentTime;
+    const duration = audio.duration;
+
+    currentTimeEl.innerText = formatTime(currentTime);
+
+    if(duration){
+        durationEl.innerText = formatTime(duration);
+        const percent = (currentTime / duration) * 100;
+        progressBar.style.width = percent + "%";
+    }
+});
+
+// Клик по прогрессу (перемотка)
+progress.addEventListener("click", (e) => {
+    const width = progress.clientWidth;
+    const clickX = e.offsetX;
+    const duration = audio.duration;
+
+    audio.currentTime = (clickX / width) * duration;
+});
+
+// Закрытие
 function closePlayer(){
     player.classList.remove("show");
     audio.pause();
     audio.currentTime = 0;
 }
 
-// Список песен
+// Список
 songs.forEach((song,index)=>{
     const div=document.createElement("div");
     div.className="song";
@@ -156,14 +245,6 @@ songs.forEach((song,index)=>{
     div.onclick=()=>{ loadSong(index); audio.play(); };
     playlist.appendChild(div);
 });
-
-// Вкладки
-function openTab(tabId,el){
-    document.querySelectorAll(".section").forEach(sec=>sec.classList.remove("active"));
-    document.getElementById(tabId).classList.add("active");
-    document.querySelectorAll(".nav-item").forEach(item=>item.classList.remove("active"));
-    el.classList.add("active");
-}
 </script>
 
 </body>
