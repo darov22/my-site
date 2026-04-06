@@ -33,13 +33,15 @@ body {
     border-top-left-radius: 25px;
     border-top-right-radius: 25px;
     box-shadow: 0 -0 25px rgba(255,122,0,0.5);
-    transform: translateY(120px); /* изначально скрыт */
-    transition: transform 0.5s ease;
+    transform: translateY(150px); /* изначально скрыт */
+    opacity: 0; /* невидим */
+    transition: transform 0.5s ease, opacity 0.5s ease;
     z-index: 100;
 }
 
 .player.show {
     transform: translateY(0); /* выезжает над панелью */
+    opacity: 1; /* становится видимым */
 }
 
 /* Кнопки плеера */
@@ -101,7 +103,6 @@ body {
     align-items: center;
     box-shadow: 0 0 20px rgba(255,122,0,0.4);
     z-index: 99;
-    transition: bottom 0.5s ease;
 }
 
 .nav-item {
@@ -210,7 +211,7 @@ function loadSong(index) {
     title.innerText = songs[index].title;
 
     // показываем плеер при выборе трека
-    if(!player.classList.contains("show")) player.classList.add("show");
+    player.classList.add("show");
 }
 
 function play() { audio.paused ? audio.play() : audio.pause(); }
