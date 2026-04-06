@@ -3,9 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <title>Music Player</title>
+
 <style>
-body { margin:0; font-family: Arial, sans-serif; background: #0f0f0f; color:white; text-align:center; }
-.content { padding-bottom: 240px; }
+body {
+    margin:0;
+    font-family: Arial;
+    background:#0f0f0f;
+    color:white;
+    text-align:center;
+}
+
+/* НЕОН */
+.player::before {
+    content:"";
+    position:absolute;
+    top:-50px;
+    left:50%;
+    transform:translateX(-50%);
+    width:80%;
+    height:120px;
+    background: radial-gradient(circle, rgba(255,122,0,0.6), transparent);
+    filter: blur(40px);
+    z-index:-1;
+}
 
 /* Плеер */
 .player {
@@ -15,143 +35,160 @@ body { margin:0; font-family: Arial, sans-serif; background: #0f0f0f; color:whit
     width: 100%;
     background: rgba(25,25,25,0.95);
     backdrop-filter: blur(15px);
-    padding: 15px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    padding: 20px 0 10px;
     border-top-left-radius: 25px;
     border-top-right-radius: 25px;
-    box-shadow: 0 -0 25px rgba(255,122,0,0.5);
     transform: translateY(150px);
     opacity: 0;
-    transition: transform 0.5s ease, opacity 0.5s ease;
-    z-index: 100;
+    transition: 0.4s;
 }
 .player.show { transform: translateY(0); opacity:1; }
 
-/* Закрыть */
+/* КРЕСТИК */
 .close-btn {
-    position: absolute;
-    top: 10px; left: 15px;
-    font-size: 20px;
-    background: transparent;
-    border: none;
-    color: #ff7a00;
-    cursor: pointer;
+    position:absolute;
+    top:10px;
+    left:10px;
+    font-size:18px;
+    background:none;
+    border:none;
+    color:#ff7a00;
+    cursor:pointer;
+    transition:0.2s;
 }
 .close-btn:hover { transform: scale(1.2); }
+.close-btn:active { transform: scale(0.9); }
 
-/* Кнопки */
-.player button {
-    padding:15px 25px;
-    margin:5px;
-    border:none;
-    border-radius:50px;
+/* КНОПКИ */
+.controls {
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    margin-bottom:5px;
+}
+
+.controls button {
     background:linear-gradient(135deg,#ff7a00,#ffbb33);
+    border:none;
+    border-radius:50%;
+    width:45px;
+    height:45px;
     color:white;
+    font-size:16px;
     cursor:pointer;
-    font-size:18px;
+    transition:0.2s;
 }
+.controls button:active { transform: scale(0.85); }
 
-/* Название */
-#title {
-    margin-top:10px;
-    font-size:18px;
-    font-weight:bold;
-}
-
-/* Прогресс */
+/* ПРОГРЕСС */
 .progress-container {
-    width: 90%;
-    margin-top:10px;
+    width:85%;
+    margin:0 auto;
 }
-
 .progress {
-    width: 100%;
-    height: 6px;
-    background: #333;
-    border-radius: 10px;
-    cursor: pointer;
-    overflow: hidden;
+    height:4px;
+    background:#333;
+    border-radius:10px;
+    cursor:pointer;
 }
-
 .progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg,#ff7a00,#ffbb33);
-    transition: width 0.2s linear;
+    height:100%;
+    width:0%;
+    background:#ff7a00;
+    border-radius:10px;
 }
 
-/* Время */
+/* ВРЕМЯ */
 .time {
     display:flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-top:5px;
+    justify-content:space-between;
+    font-size:10px;
     color:#aaa;
 }
 
-/* Список */
-.song { padding:12px; border-bottom:1px solid #222; cursor:pointer; }
+/* НИЖНИЙ БЛОК */
+.bottom-info {
+    position:absolute;
+    right:15px;
+    bottom:10px;
+    text-align:right;
+}
+
+.cover {
+    width:50px;
+    height:50px;
+    background:linear-gradient(135deg,#ff7a00,#ffbb33);
+    border-radius:10px;
+    margin-bottom:5px;
+}
+
+#title {
+    font-size:13px;
+}
+
+/* СПИСОК */
+.song {
+    padding:12px;
+    border-bottom:1px solid #222;
+    cursor:pointer;
+}
 .song:hover { background:#1a1a1a; }
 
-/* Navbar */
+/* NAVBAR */
 .navbar {
-    position: fixed; bottom:0; left:10px; right:10px; height:75px;
+    position: fixed;
+    bottom:0;
+    left:10px;
+    right:10px;
+    height:75px;
     background: rgba(20,20,20,0.9);
     border-radius:25px;
     display:flex;
     justify-content: space-around;
     align-items:center;
+    box-shadow:0 0 25px rgba(255,122,0,0.5);
 }
-
-.nav-item { color:#888; font-size:13px; cursor:pointer; }
-.nav-item.active { color:#ff7a00; }
-
-/* Секции */
-.section { display:none; }
-.section.active { display:block; }
 </style>
 </head>
 <body>
 
-<div class="content">
-<div id="home" class="section active">
-    <h1>🏠 Главная</h1>
-    <div id="playlist"></div>
-</div>
-</div>
+<h2>🎵 Музыка</h2>
+<div id="playlist"></div>
 
-<!-- Плеер -->
 <div class="player" id="player">
+
+    <!-- КРЕСТИК -->
     <button class="close-btn" onclick="closePlayer()">✖</button>
 
     <audio id="audio"></audio>
 
-    <div>
+    <div class="controls">
         <button onclick="prev()">⏮</button>
-        <button onclick="play()">▶ / ⏸</button>
+        <button id="playBtn" onclick="togglePlay()">▶</button>
         <button onclick="next()">⏭</button>
     </div>
 
-    <h2 id="title">Ничего не играет</h2>
-
-    <!-- Прогресс -->
     <div class="progress-container">
         <div class="progress" id="progress">
             <div class="progress-bar" id="progressBar"></div>
         </div>
-
         <div class="time">
             <span id="currentTime">0:00</span>
             <span id="duration">0:00</span>
         </div>
     </div>
+
+    <div class="bottom-info">
+        <div class="cover"></div>
+        <div id="title">Трек</div>
+    </div>
 </div>
 
-<!-- Navbar -->
 <div class="navbar">
-    <div class="nav-item active">🏠<br>Дом</div>
+    <div>🏠</div>
+    <div>🔥</div>
+    <div>📁</div>
+    <div>👤</div>
 </div>
 
 <script>
@@ -173,7 +210,8 @@ const progressBar = document.getElementById("progressBar");
 const currentTimeEl = document.getElementById("currentTime");
 const durationEl = document.getElementById("duration");
 
-// Формат времени
+const playBtn = document.getElementById("playBtn");
+
 function formatTime(sec){
     let m = Math.floor(sec / 60);
     let s = Math.floor(sec % 60);
@@ -181,7 +219,6 @@ function formatTime(sec){
     return m + ":" + s;
 }
 
-// Загрузка
 function loadSong(index){
     current = index;
     audio.src = songs[index].src;
@@ -189,12 +226,14 @@ function loadSong(index){
     player.classList.add("show");
 }
 
-// Play
-function play(){
+function togglePlay(){
     audio.paused ? audio.play() : audio.pause();
 }
 
-// Next / Prev
+function updatePlayBtn(){
+    playBtn.innerText = audio.paused ? "▶" : "⏸";
+}
+
 function next(){
     current = (current + 1) % songs.length;
     loadSong(current);
@@ -207,7 +246,6 @@ function prev(){
     audio.play();
 }
 
-// Обновление времени
 audio.addEventListener("timeupdate", () => {
     const currentTime = audio.currentTime;
     const duration = audio.duration;
@@ -216,28 +254,26 @@ audio.addEventListener("timeupdate", () => {
 
     if(duration){
         durationEl.innerText = formatTime(duration);
-        const percent = (currentTime / duration) * 100;
-        progressBar.style.width = percent + "%";
+        progressBar.style.width = (currentTime / duration * 100) + "%";
     }
 });
 
-// Клик по прогрессу (перемотка)
+audio.addEventListener("play", updatePlayBtn);
+audio.addEventListener("pause", updatePlayBtn);
+
 progress.addEventListener("click", (e) => {
     const width = progress.clientWidth;
     const clickX = e.offsetX;
-    const duration = audio.duration;
-
-    audio.currentTime = (clickX / width) * duration;
+    audio.currentTime = (clickX / width) * audio.duration;
 });
 
-// Закрытие
+/* ЗАКРЫТИЕ ПЛЕЕРА */
 function closePlayer(){
     player.classList.remove("show");
     audio.pause();
     audio.currentTime = 0;
 }
 
-// Список
 songs.forEach((song,index)=>{
     const div=document.createElement("div");
     div.className="song";
