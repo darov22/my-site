@@ -39,13 +39,32 @@ body {
     z-index: 100;
 }
 
+/* Плеер видимый */
 .player.show {
-    transform: translateY(0); /* выезжает над панелью */
-    opacity: 1; /* становится видимым */
+    transform: translateY(0); 
+    opacity: 1; 
+}
+
+/* Кнопка закрытия */
+.close-btn {
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    font-size: 20px;
+    background: transparent;
+    border: none;
+    color: #ff7a00;
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.close-btn:hover {
+    transform: scale(1.2);
+    color: #ffbb33;
 }
 
 /* Кнопки плеера */
-.player button {
+.player button.play-btn, .player button.prev-btn, .player button.next-btn {
     padding: 15px 25px;
     margin: 5px;
     border: none;
@@ -124,26 +143,11 @@ body {
 
 /* 📱 адаптация */
 @media (max-width: 600px) {
-    .navbar {
-        height: 90px;
-    }
-
-    .nav-item {
-        font-size: 15px;
-    }
-
-    .player button {
-        padding: 18px 30px;
-        font-size: 20px;
-    }
-
-    #title {
-        font-size: 20px;
-    }
-
-    .content {
-        padding-bottom: 270px;
-    }
+    .navbar { height: 90px; }
+    .nav-item { font-size: 15px; }
+    .player button { padding: 18px 30px; font-size: 20px; }
+    #title { font-size: 20px; }
+    .content { padding-bottom: 270px; }
 }
 </style>
 </head>
@@ -176,11 +180,12 @@ body {
 
 <!-- Плеер -->
 <div class="player" id="player">
+    <button class="close-btn" onclick="closePlayer()">✖</button>
     <audio id="audio"></audio>
     <div>
-        <button onclick="prev()">⏮</button>
-        <button onclick="play()">▶ / ⏸</button>
-        <button onclick="next()">⏭</button>
+        <button class="prev-btn" onclick="prev()">⏮</button>
+        <button class="play-btn" onclick="play()">▶ / ⏸</button>
+        <button class="next-btn" onclick="next()">⏭</button>
     </div>
     <h2 id="title">Ничего не играет</h2>
 </div>
@@ -205,18 +210,24 @@ const title = document.getElementById("title");
 const playlist = document.getElementById("playlist");
 const player = document.getElementById("player");
 
+// показать выбранный трек и плеер
 function loadSong(index) {
     current = index;
     audio.src = songs[index].src;
     title.innerText = songs[index].title;
 
-    // показываем плеер при выборе трека
     player.classList.add("show");
 }
 
+// проигрывание / пауза
 function play() { audio.paused ? audio.play() : audio.pause(); }
 function next() { current = (current + 1) % songs.length; loadSong(current); audio.play(); }
 function prev() { current = (current - 1 + songs.length) % songs.length; loadSong(current); audio.play(); }
+
+// закрыть плеер
+function closePlayer() {
+    player.classList.remove("show");
+}
 
 // список песен
 songs.forEach((song, index) => {
