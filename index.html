@@ -3,44 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <title>Music Player</title>
+
 <style>
-    body {
-        margin: 0;
-        font-family: Arial;
-        background: #121212;
-        color: white;
-        text-align: center;
-    }
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #121212;
+    color: white;
+    text-align: center;
+}
 
-    .player {
-        margin-top: 50px;
-    }
+.player {
+    margin-top: 50px;
+}
 
-    button {
-        padding: 10px 20px;
-        margin: 10px;
-        border: none;
-        border-radius: 10px;
-        background: #1db954;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-    }
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    background: #1db954;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}
 
-    button:hover {
-        background: #17a74a;
-    }
+button:hover {
+    background: #17a74a;
+}
 
-    .song {
-        cursor: pointer;
-        padding: 10px;
-        border-bottom: 1px solid #333;
-    }
+.song {
+    cursor: pointer;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+}
 
-    .song:hover {
-        background: #222;
-    }
+.song:hover {
+    background: #222;
+}
+
+.progress {
+    width: 80%;
+    height: 5px;
+    background: #333;
+    margin: 20px auto;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.progress-bar {
+    height: 5px;
+    background: #1db954;
+    width: 0%;
+    border-radius: 5px;
+}
 </style>
+
 </head>
 <body>
 
@@ -56,6 +74,10 @@
     </div>
 
     <h2 id="title">Ничего не играет</h2>
+
+    <div class="progress" onclick="setProgress(event)">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
 </div>
 
 <div id="playlist"></div>
@@ -64,15 +86,15 @@
 const songs = [
     {
         title: "Трек 1",
-        src: "music/song1.mp3"
+        src: "https://darov22.github.io/my-site/music/song1.mp3"
     },
     {
         title: "Трек 2",
-        src: "music/song2.mp3"
+        src: "https://darov22.github.io/my-site/music/song2.mp3"
     },
     {
         title: "Трек 3",
-        src: "music/song3.mp3"
+        src: "https://darov22.github.io/my-site/music/song3.mp3"
     }
 ];
 
@@ -80,6 +102,7 @@ let current = 0;
 const audio = document.getElementById("audio");
 const title = document.getElementById("title");
 const playlist = document.getElementById("playlist");
+const progressBar = document.getElementById("progressBar");
 
 function loadSong(index) {
     current = index;
@@ -109,6 +132,19 @@ function prev() {
     audio.play();
 }
 
+// Прогресс бар
+audio.addEventListener("timeupdate", () => {
+    const percent = (audio.currentTime / audio.duration) * 100;
+    progressBar.style.width = percent + "%";
+});
+
+function setProgress(e) {
+    const width = e.currentTarget.clientWidth;
+    const clickX = e.offsetX;
+    const duration = audio.duration;
+    audio.currentTime = (clickX / width) * duration;
+}
+
 // создаем плейлист
 songs.forEach((song, index) => {
     const div = document.createElement("div");
@@ -121,7 +157,6 @@ songs.forEach((song, index) => {
     playlist.appendChild(div);
 });
 
-// загрузка первой песни
 loadSong(0);
 </script>
 
