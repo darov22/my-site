@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>NEO MUSIC · ОБЩИЕ ТРЕКИ ДЛЯ ВСЕХ</title>
+<title>NEO MUSIC · Загрузка MP3 + обложки</title>
 <style>
 * {
     margin: 0;
@@ -20,7 +20,7 @@ body {
     overflow-x: hidden;
 }
 
-/* HEADER */
+/* HEADER с плюсом */
 .header-plus {
     display: flex;
     align-items: center;
@@ -62,14 +62,14 @@ body {
 }
 .plus-add-btn:hover { transform: scale(1.02); background: #2a2a2a; border-color: #ff9a3c; }
 
-/* МОДАЛЬНОЕ ОКНО */
+/* МОДАЛЬНОЕ ОКНО (загрузка mp3 + обложка) */
 .overlay-form {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.94);
+    background: rgba(0, 0, 0, 0.92);
     backdrop-filter: blur(14px);
     z-index: 1000;
     display: flex;
@@ -86,13 +86,11 @@ body {
 .modal-card {
     background: #131313;
     width: 92%;
-    max-width: 480px;
+    max-width: 460px;
     border-radius: 40px;
     padding: 26px 24px 34px;
     border: 1px solid rgba(255, 122, 0, 0.6);
     box-shadow: 0 30px 50px rgba(0,0,0,0.7);
-    max-height: 85vh;
-    overflow-y: auto;
 }
 .modal-card h3 {
     font-size: 1.6rem;
@@ -225,13 +223,8 @@ body {
     border-radius: 40px;
     color: #777;
 }
-.loading-spinner {
-    text-align: center;
-    padding: 40px;
-    color: #ffaa66;
-}
 
-/* ПЛЕЕР */
+/* ПЛЕЕР ВНИЗУ */
 .player {
     position: fixed;
     bottom: 90px;
@@ -340,21 +333,74 @@ body {
     z-index: 40;
 }
 .navbar div { font-size: 1.7rem; opacity: 0.7; }
+
+/* АНИМАЦИЯ ЗАГРУЗКИ */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: 0.2s;
+}
+.loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+.loading-card {
+    text-align: center;
+    background: #131313;
+    padding: 40px 50px;
+    border-radius: 60px;
+    border: 1px solid #ff7a00;
+    box-shadow: 0 0 40px rgba(255,122,0,0.3);
+}
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #2a2a2a;
+    border-top: 4px solid #ff7a00;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.loading-card p {
+    color: #ffaa66;
+    font-size: 1rem;
+    margin-top: 10px;
+}
+.loading-progress-text {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-top: 8px;
+}
 </style>
 </head>
 <body>
 
 <div class="header-plus">
-    <h2>🌍 ОБЩИЙ ПЛЕЕР</h2>
+    <h2>🔥 MP3-ПЛЕЕР</h2>
     <button class="plus-add-btn" id="openModalBtn">+</button>
 </div>
 
-<div id="playlist"><div class="loading-spinner">🎵 Загрузка общих треков...</div></div>
+<div id="playlist"></div>
 
-<!-- МОДАЛКА -->
+<!-- МОДАЛКА ДЛЯ ЗАГРУЗКИ ТРЕКА + ОБЛОЖКИ -->
 <div id="overlayForm" class="overlay-form">
     <div class="modal-card">
-        <h3>📀 ДОБАВИТЬ ТРЕК ДЛЯ ВСЕХ</h3>
+        <h3>📀 ЗАГРУЗИТЬ ТРЕК</h3>
         <div class="input-group">
             <label>🎵 НАЗВАНИЕ (макс 100)</label>
             <input type="text" id="trackTitle" maxlength="100" placeholder="Например: Неоновая ночь">
@@ -382,9 +428,17 @@ body {
         </div>
         <div class="modal-actions">
             <button class="btn-cancel" id="cancelModalBtn">Отмена</button>
-            <button class="btn-submit" id="submitTrackBtn">➕ СОХРАНИТЬ ДЛЯ ВСЕХ</button>
+            <button class="btn-submit" id="submitTrackBtn">➕ СОХРАНИТЬ ТРЕК</button>
         </div>
-        <div class="file-info" style="text-align:center; margin-top:12px;">🔒 Трек увидят все пользователи</div>
+    </div>
+</div>
+
+<!-- ОВЕРЛЕЙ ЗАГРУЗКИ -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card">
+        <div class="spinner"></div>
+        <p>📀 Загрузка трека...</p>
+        <div class="loading-progress-text" id="loadingStatus">Подготовка файла...</div>
     </div>
 </div>
 
@@ -408,18 +462,79 @@ body {
 <div class="navbar"><div>🏠</div><div>🔥</div><div>📁</div><div>👤</div></div>
 
 <script>
-// ========== ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ ДЛЯ ВСЕХ ПОЛЬЗОВАТЕЛЕЙ ==========
-// Используем JSONBin.io как бесплатное облачное хранилище (persistent для всех)
-// Бин ID: создан публичный бин для демонстрации. Для реального проекта нужен API ключ, но для теста все увидят общие треки.
-// Используем JSONBin с публичным доступом. Бин создаётся автоматически при первом добавлении.
-// Альтернативно - используем localStorage + синхронизация через сервер, но здесь делаем "для всех" через JSONBin.
+// ---------- ХРАНИЛИЩЕ: все треки хранятся в localStorage (как "папка") ----------
+let tracks = [];
 
-const JSONBIN_BIN_ID = "678f3b0aad19ca34f8f5b6d2"; // публичный бин (можно переиспользовать)
-const JSONBIN_API_KEY = "$2a$10$zLJkR5L9cX5qRqRqRqRqRqRqRqRqRqRqRqRq"; // демо-ключ, для чтения/записи
-// ВНИМАНИЕ: в реальном проекте ключ надо хранить безопасно, но для демонстрации общей библиотеки используем публичный бин.
-// При отсутствии бина - создадим.
+// Демо-треки
+const DEFAULT_TRACKS = [
+    { id: "demo1", title: "Пульс города", artist: "Neon Drift", mp3Data: "https://darov22.github.io/my-site/music/song1.mp3", coverData: null, isExternal: true },
+    { id: "demo2", title: "Лунный оранж", artist: "Solar Echo", mp3Data: "https://darov22.github.io/my-site/music/song2.mp3", coverData: null, isExternal: true }
+];
 
-let globalTracks = []; // массив треков для всех пользователей
+// Функция показа загрузки
+function showLoading(message = "Подготовка файла...") {
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const loadingStatus = document.getElementById("loadingStatus");
+    loadingStatus.textContent = message;
+    loadingOverlay.classList.add("active");
+}
+
+function updateLoadingMessage(message) {
+    const loadingStatus = document.getElementById("loadingStatus");
+    if (loadingStatus) loadingStatus.textContent = message;
+}
+
+function hideLoading() {
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    loadingOverlay.classList.remove("active");
+}
+
+// загрузить из localStorage
+function loadTracksFromStorage() {
+    const stored = localStorage.getItem("neo_music_tracks");
+    if (stored) {
+        try {
+            let parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length) {
+                tracks = parsed;
+                return;
+            }
+        } catch(e) {}
+    }
+    tracks = DEFAULT_TRACKS.map(t => ({ ...t }));
+    saveTracksToStorage();
+}
+
+function saveTracksToStorage() {
+    localStorage.setItem("neo_music_tracks", JSON.stringify(tracks));
+}
+
+// отрисовка списка треков
+function renderPlaylist() {
+    const container = document.getElementById("playlist");
+    container.innerHTML = "";
+    if (tracks.length === 0) {
+        container.innerHTML = '<div class="empty-msg">🎧 Нет треков. Нажми + и загрузи MP3 до 15 МБ</div>';
+        return;
+    }
+    tracks.forEach((track, idx) => {
+        const div = document.createElement("div");
+        div.className = "song";
+        const coverSrc = track.coverData ? track.coverData : (track.isExternal ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E" : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E♪%3C/text%3E%3C/svg%3E");
+        div.innerHTML = `
+            <img class="song-cover" src="${coverSrc}" alt="cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23ff7a00%22/%3E%3Ctext x=%2250%22 y=%2267%22 font-size=%2245%22 text-anchor=%22middle%22 fill=%22white%22%3E🎵%3C/text%3E%3C/svg%3E'">
+            <div class="song-info">
+                <div class="song-title">${escapeHtml(track.title)}</div>
+                <div class="song-artist">🎤 ${escapeHtml(track.artist || "Неизвестен")}</div>
+            </div>
+        `;
+        div.onclick = () => { loadTrackByIdx(idx); playAudio(); };
+        container.appendChild(div);
+    });
+}
+
+function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
 let currentTrackIdx = 0;
 const audio = document.getElementById("audio");
 const playerDiv = document.getElementById("player");
@@ -430,179 +545,35 @@ const currentTimeSpan = document.getElementById("currentTime");
 const durationSpan = document.getElementById("duration");
 const playerCoverImg = document.getElementById("playerCover");
 const titleSpan = document.getElementById("title");
-const playlistContainer = document.getElementById("playlist");
-
-// Функция для загрузки треков из облака (JSONBin)
-async function loadGlobalTracks() {
-    try {
-        playlistContainer.innerHTML = '<div class="loading-spinner">🎵 Загрузка общей библиотеки...</div>';
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-            method: 'GET',
-            headers: {
-                'X-Master-Key': JSONBIN_API_KEY
-            }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            if (data.record && Array.isArray(data.record.tracks)) {
-                globalTracks = data.record.tracks;
-            } else if (data.record && Array.isArray(data.record)) {
-                globalTracks = data.record;
-            } else {
-                globalTracks = [];
-            }
-        } else {
-            // Если бина нет или ошибка, пробуем создать начальные демо-треки
-            console.log("Бин не найден, создаем начальную коллекцию");
-            globalTracks = getDefaultTracks();
-            await saveGlobalTracks();
-        }
-    } catch (err) {
-        console.error("Ошибка загрузки облачных треков:", err);
-        globalTracks = getDefaultTracks();
-    }
-    renderPlaylist();
-    if (globalTracks.length > 0) {
-        preloadFirstTrack();
-    }
-}
-
-// Сохранить треки в облако (видны всем)
-async function saveGlobalTracks() {
-    try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': JSONBIN_API_KEY
-            },
-            body: JSON.stringify({ tracks: globalTracks })
-        });
-        if (!response.ok) {
-            // Если не обновилось, возможно бин нужно создать
-            console.warn("Не удалось обновить бин, пробуем создать новый");
-            await createNewBin();
-        }
-    } catch (err) {
-        console.error("Ошибка сохранения в облако:", err);
-        alert("⚠️ Ошибка синхронизации, но трек сохранён локально в этой сессии. Обновите страницу позже.");
-    }
-}
-
-async function createNewBin() {
-    try {
-        const createResp = await fetch('https://api.jsonbin.io/v3/b', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': JSONBIN_API_KEY
-            },
-            body: JSON.stringify({ tracks: globalTracks })
-        });
-        if (createResp.ok) {
-            const newBin = await createResp.json();
-            // обновляем ID бина (но в коде останется старый, для демо перезапишем window)
-            console.log("Создан новый бин с ID:", newBin.metadata.id);
-            alert("Облачное хранилище создано! Теперь треки видны всем.");
-        }
-    } catch(e) { console.error(e); }
-}
-
-function getDefaultTracks() {
-    return [
-        { id: "demo1", title: "Пульс города", artist: "Neon Drift", mp3Url: "https://darov22.github.io/my-site/music/song1.mp3", coverUrl: null, isExternal: true, addedBy: "system" },
-        { id: "demo2", title: "Лунный оранж", artist: "Solar Echo", mp3Url: "https://darov22.github.io/my-site/music/song2.mp3", coverUrl: null, isExternal: true, addedBy: "system" }
-    ];
-}
-
-// Функция загрузки MP3 как DataURL для хранения в облаке (чтобы все слышали)
-function fileToDataURL(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-// Добавление нового трека в облако
-async function addTrackToCloud(title, artist, mp3File, coverFile) {
-    if (!mp3File) throw new Error("MP3 файл обязателен");
-    if (mp3File.size > 15 * 1024 * 1024) throw new Error("MP3 больше 15 МБ");
-    
-    const mp3DataURL = await fileToDataURL(mp3File);
-    let coverDataURL = null;
-    if (coverFile) {
-        coverDataURL = await fileToDataURL(coverFile);
-    }
-    
-    const newTrack = {
-        id: Date.now() + "_" + Math.random().toString(36).substr(2, 8),
-        title: title.trim(),
-        artist: artist.trim() || "Неизвестный",
-        mp3Data: mp3DataURL,   // base64 mp3 (будет храниться в облаке)
-        coverData: coverDataURL,
-        isExternal: false,
-        addedBy: "user",
-        createdAt: new Date().toISOString()
-    };
-    
-    globalTracks.push(newTrack);
-    await saveGlobalTracks();
-    renderPlaylist();
-    return newTrack;
-}
-
-function renderPlaylist() {
-    if (!playlistContainer) return;
-    playlistContainer.innerHTML = "";
-    if (globalTracks.length === 0) {
-        playlistContainer.innerHTML = '<div class="empty-msg">🎧 Нет общих треков. Нажми + и загрузи MP3 (до 15 МБ), все увидят!</div>';
-        return;
-    }
-    globalTracks.forEach((track, idx) => {
-        const div = document.createElement("div");
-        div.className = "song";
-        let coverSrc = track.coverData || (track.coverUrl ? track.coverUrl : null);
-        if (!coverSrc) {
-            coverSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
-        }
-        div.innerHTML = `
-            <img class="song-cover" src="${coverSrc}" alt="cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23ff7a00%22/%3E%3Ctext x=%2250%22 y=%2267%22 font-size=%2245%22 text-anchor=%22middle%22 fill=%22white%22%3E🎵%3C/text%3E%3C/svg%3E'">
-            <div class="song-info">
-                <div class="song-title">${escapeHtml(track.title)}</div>
-                <div class="song-artist">🎤 ${escapeHtml(track.artist)}</div>
-            </div>
-        `;
-        div.onclick = () => { loadTrackByIdx(idx); playAudio(); };
-        playlistContainer.appendChild(div);
-    });
-}
-
-function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
 function loadTrackByIdx(index) {
-    if (globalTracks.length === 0) return;
+    if (tracks.length === 0) return;
     if (index < 0) index = 0;
-    if (index >= globalTracks.length) index = globalTracks.length-1;
+    if (index >= tracks.length) index = tracks.length-1;
     currentTrackIdx = index;
-    const t = globalTracks[currentTrackIdx];
-    let srcToPlay = t.mp3Data || t.mp3Url;
-    if (!srcToPlay) return;
+    const t = tracks[currentTrackIdx];
+    let srcToPlay = t.mp3Data;
+    if (t.isExternal && t.mp3Data && (t.mp3Data.startsWith("http") || t.mp3Data.startsWith("blob"))) {
+        srcToPlay = t.mp3Data;
+    } else if (!t.isExternal && t.mp3Data) {
+        srcToPlay = t.mp3Data;
+    } else {
+        srcToPlay = "";
+    }
     audio.src = srcToPlay;
-    titleSpan.innerText = `${t.title} · ${t.artist}`;
-    const coverImg = t.coverData || t.coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎧%3C/text%3E%3C/svg%3E";
+    titleSpan.innerText = `${t.title || "Трек"} · ${t.artist || "?"}`;
+    const coverImg = t.coverData ? t.coverData : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎧%3C/text%3E%3C/svg%3E";
     playerCoverImg.src = coverImg;
     playerDiv.classList.add("show");
     updatePlayPauseUI();
     audio.load();
-    audio.addEventListener("canplay", () => { if(durationSpan) durationSpan.innerText = formatTime(audio.duration); }, { once: true });
+    audio.addEventListener("canplay", () => { if(durationSpan) durationSpan.innerText = formatTime(audio.duration); });
 }
 
 function updatePlayPauseUI() { playPauseBtn.innerText = audio.paused ? "▶" : "⏸"; }
 function togglePlay() { audio.paused ? audio.play().catch(e=>console.warn) : audio.pause(); }
-function nextTrack() { if(globalTracks.length) { currentTrackIdx = (currentTrackIdx+1)%globalTracks.length; loadTrackByIdx(currentTrackIdx); audio.play().catch(e=>{}); } }
-function prevTrack() { if(globalTracks.length) { currentTrackIdx = (currentTrackIdx-1+globalTracks.length)%globalTracks.length; loadTrackByIdx(currentTrackIdx); audio.play().catch(e=>{}); } }
+function nextTrack() { if(tracks.length) { currentTrackIdx = (currentTrackIdx+1)%tracks.length; loadTrackByIdx(currentTrackIdx); audio.play().catch(e=>{}); } }
+function prevTrack() { if(tracks.length) { currentTrackIdx = (currentTrackIdx-1+tracks.length)%tracks.length; loadTrackByIdx(currentTrackIdx); audio.play().catch(e=>{}); } }
 function closePlayer() { playerDiv.classList.remove("show"); audio.pause(); audio.currentTime=0; }
 function playAudio() { audio.play().catch(e=>console.log); }
 
@@ -626,15 +597,7 @@ audio.addEventListener("ended", nextTrack);
 
 function formatTime(sec) { if(isNaN(sec) || sec===Infinity) return "0:00"; let m=Math.floor(sec/60), s=Math.floor(sec%60); if(s<10) s="0"+s; return m+":"+s; }
 
-function preloadFirstTrack() {
-    if(globalTracks.length) {
-        audio.src = globalTracks[0].mp3Data || globalTracks[0].mp3Url;
-        titleSpan.innerText = globalTracks[0].title + " · " + globalTracks[0].artist;
-        playerCoverImg.src = globalTracks[0].coverData || globalTracks[0].coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
-    }
-}
-
-// ----- МОДАЛЬНАЯ ЛОГИКА С ЗАГРУЗКОЙ -----
+// ---------- МОДАЛКА ЗАГРУЗКИ С ВИЗУАЛЬНЫМ ПРОГРЕССОМ ----------
 const overlay = document.getElementById("overlayForm");
 const openBtn = document.getElementById("openModalBtn");
 const cancelBtn = document.getElementById("cancelModalBtn");
@@ -643,22 +606,26 @@ const titleInput = document.getElementById("trackTitle");
 const artistInput = document.getElementById("trackArtist");
 const mp3FileInput = document.getElementById("mp3File");
 const coverFileInput = document.getElementById("coverFile");
+const mp3Label = document.getElementById("mp3Label");
 const mp3FileNameSpan = document.getElementById("mp3FileName");
 const coverPreviewArea = document.getElementById("coverPreviewArea");
 const coverPreviewImg = document.getElementById("coverPreviewImg");
+const coverNameSpan = document.getElementById("coverName");
 
-let selectedMp3File = null;
-let selectedCoverFile = null;
+let selectedMp3Base64 = null;
+let selectedCoverBase64 = null;
+let selectedMp3Name = "";
 
-function resetModalFields() {
+function resetModal() {
     titleInput.value = "";
     artistInput.value = "";
     document.getElementById("titleCount").innerText = "0";
     document.getElementById("artistCount").innerText = "0";
     mp3FileInput.value = "";
     coverFileInput.value = "";
-    selectedMp3File = null;
-    selectedCoverFile = null;
+    selectedMp3Base64 = null;
+    selectedCoverBase64 = null;
+    selectedMp3Name = "";
     mp3FileNameSpan.innerText = "Файл не выбран";
     coverPreviewArea.style.display = "none";
     coverPreviewImg.src = "";
@@ -666,64 +633,128 @@ function resetModalFields() {
 
 titleInput.addEventListener("input", () => { document.getElementById("titleCount").innerText = titleInput.value.length; });
 artistInput.addEventListener("input", () => { document.getElementById("artistCount").innerText = artistInput.value.length; });
-document.getElementById("mp3Label").onclick = () => mp3FileInput.click();
+
+mp3Label.onclick = () => mp3FileInput.click();
+coverFileInput.onclick = () => coverFileInput.click();
 document.getElementById("coverLabel").onclick = () => coverFileInput.click();
 
 mp3FileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    if(file.size > 15*1024*1024) { alert("MP3 превышает 15 МБ!"); mp3FileInput.value=""; return; }
-    if(!file.name.endsWith(".mp3")) { alert("Только MP3 файлы"); mp3FileInput.value=""; return; }
-    selectedMp3File = file;
+    if(file.size > 15 * 1024 * 1024) { alert("❌ MP3 превышает 15 МБ!"); mp3FileInput.value=""; return; }
+    if(!file.type.includes("mp3") && !file.name.endsWith(".mp3")) { alert("❌ Только MP3 файлы"); mp3FileInput.value=""; return; }
+    selectedMp3Name = file.name;
     mp3FileNameSpan.innerText = `${file.name} (${(file.size/1024/1024).toFixed(2)} МБ)`;
+    const reader = new FileReader();
+    reader.onload = function(ev) { selectedMp3Base64 = ev.target.result; };
+    reader.readAsDataURL(file);
 });
 
 coverFileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    if(!file.type.startsWith("image/")) { alert("Только изображения"); coverFileInput.value=""; return; }
-    selectedCoverFile = file;
+    if(!file.type.startsWith("image/")) { alert("Только изображения (jpg/png)"); coverFileInput.value=""; return; }
     const reader = new FileReader();
-    reader.onload = (ev) => { coverPreviewImg.src = ev.target.result; coverPreviewArea.style.display = "flex"; };
+    reader.onload = function(ev) {
+        selectedCoverBase64 = ev.target.result;
+        coverPreviewImg.src = selectedCoverBase64;
+        coverPreviewArea.style.display = "flex";
+        coverNameSpan.innerText = file.name;
+    };
     reader.readAsDataURL(file);
 });
 
-submitBtn.onclick = async () => {
+// Функция загрузки трека с визуальным прогрессом
+async function processTrackWithLoading() {
     let titleVal = titleInput.value.trim();
-    if(!titleVal) { alert("Укажите название трека"); return; }
+    if(!titleVal) { alert("Укажите название трека"); return false; }
     if(titleVal.length>100) titleVal = titleVal.slice(0,100);
     let artistVal = artistInput.value.trim();
     if(artistVal.length>50) artistVal = artistVal.slice(0,50);
     if(!artistVal) artistVal = "Неизвестный исполнитель";
-    if(!selectedMp3File) { alert("Загрузите MP3 файл (до 15 МБ)"); return; }
+    if(!selectedMp3Base64) { alert("❌ Загрузите MP3 файл (до 15 МБ)"); return false; }
     
+    showLoading("⏳ Подготовка к сохранению...");
+    
+    // Имитируем небольшую задержку для плавности UI
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    updateLoadingMessage("💾 Сохранение трека в библиотеку...");
+    
+    // Создаём новый трек
+    const newTrack = {
+        id: Date.now() + Math.random().toString(36),
+        title: titleVal,
+        artist: artistVal,
+        mp3Data: selectedMp3Base64,
+        coverData: selectedCoverBase64 || null,
+        isExternal: false
+    };
+    
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    tracks.push(newTrack);
+    saveTracksToStorage();
+    
+    updateLoadingMessage("✅ Завершение...");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    hideLoading();
+    renderPlaylist();
+    closeModal();
+    resetModal();
+    
+    // Показываем уведомление об успехе
+    let notif = document.createElement("div");
+    notif.innerText = `✅ "${titleVal}" успешно добавлен! (${(selectedMp3Base64.length / 1024 / 1024).toFixed(1)} МБ)`;
+    notif.style.position = "fixed"; notif.style.bottom = "180px"; notif.style.left = "20px"; notif.style.right = "20px";
+    notif.style.backgroundColor = "#1a3a1a";
+    notif.style.color = "#aaffaa";
+    notif.style.padding = "12px";
+    notif.style.borderRadius = "40px";
+    notif.style.textAlign = "center";
+    notif.style.zIndex = "999";
+    notif.style.border = "1px solid #00ff66";
+    notif.style.fontWeight = "bold";
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 2500);
+    
+    return true;
+}
+
+submitBtn.onclick = async () => {
+    // Блокируем кнопку на время загрузки
     submitBtn.disabled = true;
-    submitBtn.innerText = "⏳ Загрузка...";
-    try {
-        await addTrackToCloud(titleVal, artistVal, selectedMp3File, selectedCoverFile);
-        alert(`✅ "${titleVal}" добавлен в общую библиотеку! Теперь все пользователи увидят трек.`);
-        resetModalFields();
-        closeModal();
-    } catch(err) {
-        alert("Ошибка: " + err.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = "➕ СОХРАНИТЬ ДЛЯ ВСЕХ";
-    }
+    submitBtn.style.opacity = "0.6";
+    submitBtn.style.cursor = "wait";
+    
+    await processTrackWithLoading();
+    
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = "1";
+    submitBtn.style.cursor = "pointer";
 };
 
-function openModal() { resetModalFields(); overlay.classList.add("active"); }
+function openModal() { resetModal(); overlay.classList.add("active"); }
 function closeModal() { overlay.classList.remove("active"); }
 openBtn.onclick = openModal;
 cancelBtn.onclick = closeModal;
 overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
 
+// инициализация контролов плеера
 document.getElementById("prevBtn").onclick = prevTrack;
 document.getElementById("nextBtn").onclick = nextTrack;
 playPauseBtn.onclick = togglePlay;
 document.getElementById("closePlayerBtn").onclick = closePlayer;
 
-loadGlobalTracks();
+// загружаем данные при старте
+loadTracksFromStorage();
+renderPlaylist();
+if(tracks.length) {
+    audio.src = tracks[0].isExternal ? tracks[0].mp3Data : (tracks[0].mp3Data || "");
+    titleSpan.innerText = tracks[0].title + " · " + (tracks[0].artist || "");
+    playerCoverImg.src = tracks[0].coverData || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
+}
 </script>
 </body>
 </html>
