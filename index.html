@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>NEO MUSIC · ОНЛАЙН ПЛЕЕР (Firebase)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>NEO MUSIC </title>
 <style>
 * {
     margin: 0;
@@ -13,21 +13,27 @@
 
 body {
     background: #0b0b0b;
-    font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     color: #f0f0f0;
     min-height: 100vh;
     padding-bottom: 100px;
     overflow-x: hidden;
 }
 
+/* СКРОЛЛБАР */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #ff7a00; border-radius: 10px; }
+
+/* HEADER */
 .header-plus {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 18px 24px 12px 24px;
-    background: rgba(10, 10, 10, 0.7);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(255, 122, 0, 0.35);
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 122, 0, 0.5);
     position: sticky;
     top: 0;
     z-index: 20;
@@ -35,7 +41,7 @@ body {
 
 .header-plus h2 {
     font-size: 1.8rem;
-    font-weight: 600;
+    font-weight: 700;
     background: linear-gradient(135deg, #ff9a3c, #ff7a00);
     -webkit-background-clip: text;
     background-clip: text;
@@ -45,7 +51,7 @@ body {
 
 .plus-add-btn {
     background: linear-gradient(145deg, #1f1f1f, #141414);
-    border: 1px solid rgba(255, 122, 0, 0.6);
+    border: 1px solid rgba(255, 122, 0, 0.7);
     border-radius: 60px;
     width: 50px;
     height: 50px;
@@ -59,16 +65,17 @@ body {
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
-.plus-add-btn:hover { transform: scale(1.02); background: #2a2a2a; border-color: #ff9a3c; }
+.plus-add-btn:active { transform: scale(0.96); }
 
+/* МОДАЛКА */
 .overlay-form {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.92);
-    backdrop-filter: blur(14px);
+    background: rgba(0, 0, 0, 0.94);
+    backdrop-filter: blur(18px);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -84,11 +91,13 @@ body {
 .modal-card {
     background: #131313;
     width: 92%;
-    max-width: 460px;
-    border-radius: 40px;
-    padding: 26px 24px 34px;
-    border: 1px solid rgba(255, 122, 0, 0.6);
-    box-shadow: 0 30px 50px rgba(0,0,0,0.7);
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 44px;
+    padding: 24px 22px 34px;
+    border: 1px solid rgba(255, 122, 0, 0.7);
+    box-shadow: 0 30px 50px rgba(0,0,0,0.8);
 }
 .modal-card h3 {
     font-size: 1.6rem;
@@ -126,33 +135,25 @@ body {
     cursor: pointer;
     border: 1px dashed #ff7a00;
 }
-.input-group input:focus, .file-label:hover {
-    border-color: #ff7a00;
-}
 .char-counter {
     font-size: 10px;
     text-align: right;
     margin-top: 5px;
     color: #aaa;
 }
-.file-info {
-    font-size: 11px;
-    margin-top: 6px;
-    color: #bbb;
-}
 .preview-cover {
-    margin-top: 10px;
+    margin-top: 12px;
     display: flex;
     align-items: center;
     gap: 12px;
     background: #1a1a1a;
-    border-radius: 30px;
+    border-radius: 40px;
     padding: 8px 16px;
 }
 .preview-img {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: 16px;
     background: #2c2c2c;
     object-fit: cover;
     border: 1px solid #ff7a00;
@@ -173,6 +174,7 @@ body {
 .btn-cancel { background: #2c2c2c; color: #ccc; }
 .btn-submit { background: linear-gradient(95deg, #ff7a00, #ffaa33); color: #111; }
 
+/* ПЛЕЙЛИСТ */
 #playlist {
     margin: 24px 20px 110px 20px;
     display: flex;
@@ -192,27 +194,34 @@ body {
     transition: 0.2s;
     position: relative;
 }
-.song:hover { background: #292929; transform: translateX(5px); }
+.song:active { background: #292929; transform: scale(0.99); }
 .song-cover {
     width: 52px;
     height: 52px;
-    border-radius: 16px;
+    border-radius: 18px;
     object-fit: cover;
     background: linear-gradient(135deg, #ff7a00, #cc6200);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    flex-shrink: 0;
 }
 .song-info {
     flex: 1;
     text-align: left;
+    min-width: 0;
 }
 .song-title {
     font-weight: 700;
     font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .song-artist {
     font-size: 0.7rem;
     color: #ffaa66;
     margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .song-size {
     font-size: 0.65rem;
@@ -221,26 +230,23 @@ body {
 }
 .delete-song {
     position: absolute;
-    right: 16px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     background: rgba(255, 50, 50, 0.2);
     border: none;
-    color: #ff6666;
+    color: #ff8888;
     font-size: 20px;
     cursor: pointer;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: 0.2s;
 }
-.delete-song:hover {
-    background: rgba(255, 50, 50, 0.5);
-    transform: translateY(-50%) scale(1.1);
-}
+.delete-song:active { background: rgba(255, 50, 50, 0.6); transform: translateY(-50%) scale(0.95); }
 .empty-msg {
     text-align: center;
     padding: 50px;
@@ -249,38 +255,47 @@ body {
     color: #777;
 }
 
+/* ПЛЕЕР ОПТИМИЗАЦИЯ */
 .player {
     position: fixed;
-    bottom: 90px;
+    bottom: 85px;
     left: 0;
+    right: 0;
     width: 100%;
-    background: rgba(18, 18, 18, 0.97);
-    backdrop-filter: blur(20px);
-    padding: 16px 20px 18px;
-    border-top-left-radius: 32px;
-    border-top-right-radius: 32px;
+    background: rgba(12, 12, 12, 0.96);
+    backdrop-filter: blur(24px);
+    padding: 14px 20px 20px;
+    border-top-left-radius: 36px;
+    border-top-right-radius: 36px;
     transform: translateY(150px);
     opacity: 0;
-    transition: 0.35s;
+    transition: 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
     z-index: 50;
-    border-top: 1px solid rgba(255, 122, 0, 0.6);
+    border-top: 1px solid rgba(255, 122, 0, 0.7);
+    box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
 }
 .player.show { transform: translateY(0); opacity: 1; }
 .close-btn {
     position: absolute;
-    top: 10px;
-    left: 16px;
+    top: 12px;
+    left: 18px;
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 22px;
     color: #ff7a00;
     cursor: pointer;
+    width: 34px;
+    height: 34px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .controls {
     display: flex;
     justify-content: center;
-    gap: 28px;
-    margin: 10px 0 12px;
+    gap: 32px;
+    margin: 8px 0 10px;
 }
 .controls button {
     background: #2a2a2a;
@@ -288,13 +303,14 @@ body {
     border-radius: 60px;
     width: 54px;
     height: 54px;
-    font-size: 24px;
+    font-size: 26px;
     color: #ffaa55;
     cursor: pointer;
-    transition: 0.1s;
+    transition: 0.07s linear;
+    box-shadow: 0 2px 6px black;
 }
-.controls button:active { transform: scale(0.88); background: #ff7a00; color: black; }
-.progress-container { width: 92%; margin: 6px auto; }
+.controls button:active { transform: scale(0.9); background: #ff7a00; color: black; }
+.progress-container { width: 100%; margin: 4px auto; padding: 0 8px; }
 .progress {
     height: 5px;
     background: #2c2c2c;
@@ -311,62 +327,146 @@ body {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    color: #aaa;
+    color: #bbb;
     margin-top: 6px;
+    padding: 0 4px;
 }
 .bottom-info {
-    position: absolute;
-    right: 20px;
-    bottom: 14px;
+    position: static;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+    padding-right: 12px;
 }
 .player-cover {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border-radius: 14px;
     background: #ff7a00;
     object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 #title {
     font-size: 12px;
     background: #1f1f1f;
-    padding: 4px 12px;
-    border-radius: 50px;
-    max-width: 160px;
+    padding: 6px 14px;
+    border-radius: 40px;
+    max-width: 180px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 500;
 }
+/* Адаптив для телефонов */
+@media (max-width: 550px) {
+    .controls button { width: 48px; height: 48px; font-size: 22px; gap: 24px; }
+    .bottom-info { gap: 8px; }
+    #title { max-width: 130px; font-size: 10px; padding: 5px 10px; }
+    .player-cover { width: 40px; height: 40px; }
+    .player { padding: 12px 16px 18px; bottom: 80px; }
+    .song { padding: 10px 14px; gap: 12px; }
+    .song-title { font-size: 0.9rem; }
+}
+@media (max-width: 380px) {
+    #title { max-width: 100px; }
+    .controls button { width: 44px; height: 44px; }
+}
+
 .navbar {
     position: fixed;
     bottom: 12px;
     left: 12px;
     right: 12px;
-    height: 70px;
-    background: rgba(12,12,12,0.94);
-    backdrop-filter: blur(15px);
+    height: 68px;
+    background: rgba(10,10,10,0.94);
+    backdrop-filter: blur(18px);
     border-radius: 38px;
     display: flex;
     justify-content: space-around;
     align-items: center;
     box-shadow: 0 0 20px rgba(255,122,0,0.3);
-    border: 1px solid rgba(255,122,0,0.4);
+    border: 1px solid rgba(255,122,0,0.5);
     z-index: 40;
 }
 .navbar div { font-size: 1.7rem; opacity: 0.7; cursor: pointer; transition: 0.2s; }
-.navbar div:hover { opacity: 1; transform: scale(1.1); }
+.navbar div:active { opacity: 1; transform: scale(1.1); }
 
+/* КРАСИВАЯ ЗАГРУЗКА ПРИ СТАРТЕ (loading треков) */
+.splash-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #0f0f0f, #030303);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+    opacity: 1;
+    visibility: visible;
+}
+.splash-loader.hide {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+}
+.loader-ring {
+    width: 80px;
+    height: 80px;
+    border: 4px solid rgba(255,122,0,0.2);
+    border-top: 4px solid #ff7a00;
+    border-radius: 50%;
+    animation: spinRing 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    margin-bottom: 30px;
+}
+@keyframes spinRing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.loader-text {
+    font-size: 1.3rem;
+    font-weight: 600;
+    background: linear-gradient(120deg, #ffaa66, #ff7a00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 1px;
+}
+.loader-sub {
+    margin-top: 14px;
+    font-size: 0.8rem;
+    color: #aaa;
+}
+.loader-progress-track {
+    width: 220px;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    margin-top: 24px;
+    overflow: hidden;
+}
+.loader-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff9a3c, #ffcc66);
+    border-radius: 8px;
+    transition: width 0.15s linear;
+}
+
+/* лоадер загрузки трека в облако */
 .loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.96);
+    backdrop-filter: blur(24px);
     z-index: 2000;
     display: flex;
     align-items: center;
@@ -382,29 +482,23 @@ body {
 .loading-card {
     text-align: center;
     background: #131313;
-    padding: 40px 50px;
-    border-radius: 60px;
+    padding: 30px 32px;
+    border-radius: 64px;
     border: 1px solid #ff7a00;
-    box-shadow: 0 0 40px rgba(255,122,0,0.3);
-    min-width: 320px;
+    min-width: 280px;
 }
 .spinner {
-    width: 60px;
-    height: 60px;
+    width: 52px;
+    height: 52px;
     border: 4px solid #2a2a2a;
     border-top: 4px solid #ff7a00;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.7s linear infinite;
     margin: 0 auto 20px;
 }
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-}
-.loading-card p {
-    color: #ffaa66;
-    font-size: 1rem;
-    margin-top: 10px;
 }
 .progress-bar-container {
     width: 100%;
@@ -422,17 +516,23 @@ body {
     transition: width 0.1s linear;
 }
 .loading-percent {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: bold;
     color: #ffaa66;
-    margin: 10px 0;
 }
 </style>
 </head>
 <body>
 
+<div class="splash-loader" id="splashLoader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">NEO MUSIC</div>
+    <div class="loader-sub">загрузка треков из облака...</div>
+    <div class="loader-progress-track"><div class="loader-progress-fill" id="splashProgressFill"></div></div>
+</div>
+
 <div class="header-plus">
-    <h2>🔥 ОНЛАЙН ПЛЕЕР</h2>
+    <h2>🔥 NEO MUSIC</h2>
     <button class="plus-add-btn" id="openModalBtn">+</button>
 </div>
 
@@ -477,9 +577,7 @@ body {
     <div class="loading-card">
         <div class="spinner"></div>
         <p>☁️ Загрузка в облако</p>
-        <div class="progress-bar-container">
-            <div class="progress-bar-fill" id="progressBarFill"></div>
-        </div>
+        <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBarFill"></div></div>
         <div class="loading-percent" id="loadingPercent">0%</div>
         <div class="loading-progress-text" id="loadingStatus">Подготовка...</div>
     </div>
@@ -552,20 +650,35 @@ const durationSpan = document.getElementById("duration");
 const playerCoverImg = document.getElementById("playerCover");
 const titleSpan = document.getElementById("title");
 
-async function loadAllTracks() {
+// Показываем прелоадер при старте
+const splashLoader = document.getElementById("splashLoader");
+const splashProgressFill = document.getElementById("splashProgressFill");
+
+async function loadAllTracksWithSplash() {
     try {
+        let progressVal = 0;
+        const updateSplash = (percent) => {
+            splashProgressFill.style.width = percent + "%";
+        };
+        updateSplash(10);
         const q = query(collection(db, "tracks"), orderBy("date", "desc"));
         const querySnapshot = await getDocs(q);
-        
+        updateSplash(60);
         tracks = [];
         querySnapshot.forEach((doc) => {
             tracks.push({ id: doc.id, ...doc.data() });
         });
-        
+        updateSplash(100);
+        await new Promise(r => setTimeout(r, 300));
+        splashLoader.classList.add("hide");
+        setTimeout(() => { if(splashLoader) splashLoader.style.display = "none"; }, 500);
         renderPlaylist();
     } catch (error) {
         console.error("Ошибка загрузки:", error);
+        splashLoader.classList.add("hide");
+        setTimeout(() => splashLoader.style.display = "none", 400);
         showNotification("❌ Ошибка загрузки треков", "#ff6666");
+        renderPlaylist();
     }
 }
 
@@ -618,7 +731,6 @@ function renderPlaylist() {
         const track = tracks[idx];
         const div = document.createElement("div");
         div.className = "song";
-        
         const coverSrc = track.coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
         
         div.innerHTML = `
@@ -631,14 +743,12 @@ function renderPlaylist() {
             <button class="delete-song" data-id="${track.id}" data-title="${escapeHtml(track.title)}">🗑️</button>
         `;
         
-        const playArea = div.querySelector('.song-cover, .song-info');
-        if (playArea) {
-            playArea.addEventListener('click', (e) => {
-                e.stopPropagation();
-                loadTrackByIdx(idx);
-                playAudio();
-            });
-        }
+        const playZone = div;
+        playZone.addEventListener('click', (e) => {
+            if(e.target.classList && e.target.classList.contains('delete-song')) return;
+            loadTrackByIdx(idx);
+            playAudio();
+        });
         
         const deleteBtn = div.querySelector('.delete-song');
         if (deleteBtn) {
@@ -649,7 +759,6 @@ function renderPlaylist() {
                 }
             });
         }
-        
         container.appendChild(div);
     }
 }
@@ -658,24 +767,32 @@ async function deleteTrackFromFirebase(track) {
     try {
         const mp3Ref = ref(storage, track.mp3Path);
         await deleteObject(mp3Ref);
-        
         if (track.coverPath) {
             const coverRef = ref(storage, track.coverPath);
             await deleteObject(coverRef);
         }
-        
         await deleteDoc(doc(db, "tracks", track.id));
-        await loadAllTracks();
-        
+        await loadAllTracksFresh();
         if (currentTrackIdx >= 0 && tracks[currentTrackIdx]?.id === track.id) {
             closePlayer();
         }
-        
         showNotification(`🗑️ "${track.title}" удалён`, "#ff6666");
     } catch (error) {
         console.error("Ошибка удаления:", error);
         showNotification("❌ Ошибка удаления", "#ff6666");
     }
+}
+
+async function loadAllTracksFresh() {
+    try {
+        const q = query(collection(db, "tracks"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(q);
+        tracks = [];
+        querySnapshot.forEach((doc) => {
+            tracks.push({ id: doc.id, ...doc.data() });
+        });
+        renderPlaylist();
+    } catch(e) { console.error(e); }
 }
 
 function revokeCurrentUrl() {
@@ -691,53 +808,22 @@ async function loadTrackByIdx(index) {
     if (index >= tracks.length) index = tracks.length - 1;
     currentTrackIdx = index;
     const track = tracks[currentTrackIdx];
-    
     audio.pause();
     revokeCurrentUrl();
-    
     titleSpan.innerText = `${track.title || "Трек"} · ${track.artist || "?"}`;
     playerCoverImg.src = track.coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎧%3C/text%3E%3C/svg%3E";
-    
     audio.src = track.mp3Url;
     playerDiv.classList.add("show");
     updatePlayPauseUI();
     audio.load();
 }
 
-function updatePlayPauseUI() { 
-    playPauseBtn.innerText = audio.paused ? "▶" : "⏸"; 
-}
-
-function togglePlay() { 
-    audio.paused ? audio.play().catch(e => console.warn(e)) : audio.pause(); 
-}
-
-async function nextTrack() { 
-    if(tracks.length) { 
-        currentTrackIdx = (currentTrackIdx + 1) % tracks.length; 
-        await loadTrackByIdx(currentTrackIdx); 
-        audio.play().catch(e => {}); 
-    } 
-}
-
-async function prevTrack() { 
-    if(tracks.length) { 
-        currentTrackIdx = (currentTrackIdx - 1 + tracks.length) % tracks.length; 
-        await loadTrackByIdx(currentTrackIdx); 
-        audio.play().catch(e => {}); 
-    } 
-}
-
-function closePlayer() { 
-    playerDiv.classList.remove("show"); 
-    audio.pause(); 
-    audio.currentTime = 0;
-    revokeCurrentUrl();
-}
-
-function playAudio() { 
-    audio.play().catch(e => console.log(e)); 
-}
+function updatePlayPauseUI() { playPauseBtn.innerText = audio.paused ? "▶" : "⏸"; }
+function togglePlay() { audio.paused ? audio.play().catch(e => console.warn(e)) : audio.pause(); }
+async function nextTrack() { if(tracks.length) { currentTrackIdx = (currentTrackIdx + 1) % tracks.length; await loadTrackByIdx(currentTrackIdx); audio.play().catch(e=>{}); } }
+async function prevTrack() { if(tracks.length) { currentTrackIdx = (currentTrackIdx - 1 + tracks.length) % tracks.length; await loadTrackByIdx(currentTrackIdx); audio.play().catch(e=>{}); } }
+function closePlayer() { playerDiv.classList.remove("show"); audio.pause(); audio.currentTime = 0; revokeCurrentUrl(); }
+function playAudio() { audio.play().catch(e => console.log(e)); }
 
 audio.addEventListener("play", updatePlayPauseUI);
 audio.addEventListener("pause", updatePlayPauseUI);
@@ -749,9 +835,7 @@ audio.addEventListener("timeupdate", () => {
         durationSpan.innerText = formatTime(audio.duration);
     }
 });
-audio.addEventListener("loadedmetadata", () => { 
-    if(audio.duration) durationSpan.innerText = formatTime(audio.duration); 
-});
+audio.addEventListener("loadedmetadata", () => { if(audio.duration) durationSpan.innerText = formatTime(audio.duration); });
 progress.addEventListener("click", (e) => {
     const rect = progress.getBoundingClientRect();
     let perc = (e.clientX - rect.left) / rect.width;
@@ -759,13 +843,7 @@ progress.addEventListener("click", (e) => {
 });
 audio.addEventListener("ended", nextTrack);
 
-function formatTime(sec) { 
-    if(isNaN(sec) || sec === Infinity) return "0:00"; 
-    let m = Math.floor(sec / 60); 
-    let s = Math.floor(sec % 60); 
-    if(s < 10) s = "0" + s; 
-    return m + ":" + s; 
-}
+function formatTime(sec) { if(isNaN(sec) || sec === Infinity) return "0:00"; let m = Math.floor(sec / 60); let s = Math.floor(sec % 60); if(s < 10) s = "0" + s; return m + ":" + s; }
 
 let selectedMp3File = null;
 let selectedCoverFile = null;
@@ -774,139 +852,69 @@ function updateLoadingProgress(percent, status) {
     const progressBarFill = document.getElementById("progressBarFill");
     const loadingPercent = document.getElementById("loadingPercent");
     const loadingStatus = document.getElementById("loadingStatus");
-    
     const clampedPercent = Math.min(100, Math.max(0, percent));
     progressBarFill.style.width = clampedPercent + "%";
     loadingPercent.textContent = Math.floor(clampedPercent) + "%";
     if (status) loadingStatus.textContent = status;
 }
-
-function showLoading() {
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.classList.add("active");
-    updateLoadingProgress(0, "Подготовка...");
-}
-
-function hideLoading() {
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.classList.remove("active");
-}
+function showLoading() { document.getElementById("loadingOverlay").classList.add("active"); updateLoadingProgress(0, "Подготовка..."); }
+function hideLoading() { document.getElementById("loadingOverlay").classList.remove("active"); }
 
 async function uploadTrackToFirebase() {
-    if (!selectedMp3File) { 
-        alert("❌ Выберите MP3 файл"); 
-        return false; 
-    }
-    
+    if (!selectedMp3File) { alert("❌ Выберите MP3 файл"); return false; }
     let titleVal = document.getElementById("trackTitle").value.trim();
     if(!titleVal) { alert("Укажите название трека"); return false; }
     if(titleVal.length > 100) titleVal = titleVal.slice(0,100);
-    
     let artistVal = document.getElementById("trackArtist").value.trim();
     if(artistVal.length > 50) artistVal = artistVal.slice(0,50);
     if(!artistVal) artistVal = "Неизвестный исполнитель";
-    
-    if (selectedMp3File.size > 50 * 1024 * 1024) {
-        alert("❌ Файл превышает 50 МБ!");
-        return false;
-    }
-    
+    if (selectedMp3File.size > 50 * 1024 * 1024) { alert("❌ Файл превышает 50 МБ!"); return false; }
     showLoading();
-    
     try {
         const trackId = Date.now().toString() + "_" + Math.random().toString(36).substr(2, 6);
-        
-        updateLoadingProgress(5, "Загрузка MP3 в облако...");
+        updateLoadingProgress(5, "Загрузка MP3...");
         const mp3Path = `mp3/${trackId}.mp3`;
         const mp3Ref = ref(storage, mp3Path);
         const mp3UploadTask = uploadBytesResumable(mp3Ref, selectedMp3File);
-        
         const mp3Url = await new Promise((resolve, reject) => {
-            mp3UploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 75;
-                    updateLoadingProgress(5 + progress, `Загрузка MP3... ${Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100)}%`);
-                },
-                (error) => {
-                    console.error("MP3 upload error:", error);
-                    reject(error);
-                },
-                async () => {
-                    const url = await getDownloadURL(mp3UploadTask.snapshot.ref);
-                    resolve(url);
-                }
-            );
+            mp3UploadTask.on('state_changed', (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 70;
+                updateLoadingProgress(5 + progress, `MP3: ${Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100)}%`);
+            }, reject, async () => resolve(await getDownloadURL(mp3UploadTask.snapshot.ref)));
         });
-        
-        let coverUrl = null;
-        let coverPath = null;
-        
+        let coverUrl = null, coverPath = null;
         if (selectedCoverFile) {
-            updateLoadingProgress(80, "Загрузка обложки...");
+            updateLoadingProgress(78, "Загрузка обложки...");
             coverPath = `covers/${trackId}.jpg`;
             const coverRef = ref(storage, coverPath);
             const coverUploadTask = uploadBytesResumable(coverRef, selectedCoverFile);
-            
             coverUrl = await new Promise((resolve, reject) => {
-                coverUploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = 80 + (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
-                        updateLoadingProgress(progress, `Загрузка обложки... ${Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100)}%`);
-                    },
-                    reject,
-                    async () => {
-                        const url = await getDownloadURL(coverUploadTask.snapshot.ref);
-                        resolve(url);
-                    }
-                );
+                coverUploadTask.on('state_changed', (snapshot) => {
+                    const progress = 78 + (snapshot.bytesTransferred / snapshot.totalBytes) * 12;
+                    updateLoadingProgress(progress, `Обложка: ${Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100)}%`);
+                }, reject, async () => resolve(await getDownloadURL(coverUploadTask.snapshot.ref)));
             });
         }
-        
-        updateLoadingProgress(92, "Сохранение информации о треке...");
-        
-        const trackData = {
-            title: titleVal,
-            artist: artistVal,
-            mp3Url: mp3Url,
-            mp3Path: mp3Path,
-            coverUrl: coverUrl,
-            coverPath: coverPath,
-            size: selectedMp3File.size,
-            date: new Date().toISOString()
-        };
-        
-        console.log("Сохраняем в Firestore:", trackData);
-        
-        await addDoc(collection(db, "tracks"), trackData);
-        
+        updateLoadingProgress(92, "Сохранение...");
+        await addDoc(collection(db, "tracks"), {
+            title: titleVal, artist: artistVal, mp3Url, mp3Path,
+            coverUrl, coverPath, size: selectedMp3File.size, date: new Date().toISOString()
+        });
         updateLoadingProgress(100, "Готово!");
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise(r => setTimeout(r, 400));
         hideLoading();
-        await loadAllTracks();
-        
+        await loadAllTracksFresh();
         document.getElementById("trackTitle").value = "";
         document.getElementById("trackArtist").value = "";
-        document.getElementById("titleCount").innerText = "0";
-        document.getElementById("artistCount").innerText = "0";
-        selectedMp3File = null;
-        selectedCoverFile = null;
+        selectedMp3File = null; selectedCoverFile = null;
         document.getElementById("mp3FileName").innerText = "Файл не выбран";
         document.getElementById("coverPreviewArea").style.display = "none";
         document.getElementById("mp3File").value = "";
         document.getElementById("coverFile").value = "";
-        
-        showNotification(`✅ "${titleVal}" - ${artistVal} добавлен в облако!`, "#aaffaa");
+        showNotification(`✅ "${titleVal}" добавлен!`, "#aaffaa");
         closeModal();
-        
         return true;
-        
-    } catch (error) {
-        hideLoading();
-        console.error("ОШИБКА:", error);
-        alert("Ошибка загрузки: " + error.message);
-        return false;
-    }
+    } catch (error) { hideLoading(); alert("Ошибка: " + error.message); return false; }
 }
 
 const overlay = document.getElementById("overlayForm");
@@ -917,91 +925,22 @@ const titleInput = document.getElementById("trackTitle");
 const artistInput = document.getElementById("trackArtist");
 const mp3FileInput = document.getElementById("mp3File");
 const coverFileInput = document.getElementById("coverFile");
-const mp3Label = document.getElementById("mp3Label");
-const mp3FileNameSpan = document.getElementById("mp3FileName");
-const coverPreviewArea = document.getElementById("coverPreviewArea");
-const coverPreviewImg = document.getElementById("coverPreviewImg");
-const coverNameSpan = document.getElementById("coverName");
-
-function resetModal() {
-    titleInput.value = "";
-    artistInput.value = "";
-    document.getElementById("titleCount").innerText = "0";
-    document.getElementById("artistCount").innerText = "0";
-    mp3FileInput.value = "";
-    coverFileInput.value = "";
-    selectedMp3File = null;
-    selectedCoverFile = null;
-    mp3FileNameSpan.innerText = "Файл не выбран";
-    coverPreviewArea.style.display = "none";
-    coverPreviewImg.src = "";
-}
-
-titleInput.addEventListener("input", () => { 
-    document.getElementById("titleCount").innerText = titleInput.value.length; 
-});
-artistInput.addEventListener("input", () => { 
-    document.getElementById("artistCount").innerText = artistInput.value.length; 
-});
-
-mp3Label.onclick = () => mp3FileInput.click();
+function resetModal() { titleInput.value = ""; artistInput.value = ""; document.getElementById("titleCount").innerText = "0"; document.getElementById("artistCount").innerText = "0"; mp3FileInput.value = ""; coverFileInput.value = ""; selectedMp3File = null; selectedCoverFile = null; document.getElementById("mp3FileName").innerText = "Файл не выбран"; document.getElementById("coverPreviewArea").style.display = "none"; }
+titleInput.addEventListener("input", () => { document.getElementById("titleCount").innerText = titleInput.value.length; });
+artistInput.addEventListener("input", () => { document.getElementById("artistCount").innerText = artistInput.value.length; });
+document.getElementById("mp3Label").onclick = () => mp3FileInput.click();
 document.getElementById("coverLabel").onclick = () => coverFileInput.click();
-
-mp3FileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    if(file.size > 50 * 1024 * 1024) { 
-        alert("❌ MP3 превышает 50 МБ!"); 
-        mp3FileInput.value = ""; 
-        return; 
-    }
-    if(!file.type.includes("mp3") && !file.name.endsWith(".mp3")) { 
-        alert("❌ Только MP3 файлы"); 
-        mp3FileInput.value = ""; 
-        return; 
-    }
-    selectedMp3File = file;
-    mp3FileNameSpan.innerText = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} МБ)`;
-});
-
-coverFileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    if(!file.type.startsWith("image/")) { 
-        alert("Только изображения (jpg/png)"); 
-        coverFileInput.value = ""; 
-        return; 
-    }
-    selectedCoverFile = file;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        coverPreviewImg.src = ev.target.result;
-        coverPreviewArea.style.display = "flex";
-        coverNameSpan.innerText = file.name;
-    };
-    reader.readAsDataURL(file);
-});
-
-submitBtn.onclick = async () => {
-    submitBtn.disabled = true;
-    submitBtn.style.opacity = "0.6";
-    await uploadTrackToFirebase();
-    submitBtn.disabled = false;
-    submitBtn.style.opacity = "1";
-};
-
+mp3FileInput.addEventListener("change", (e) => { const file = e.target.files[0]; if(file && file.size <= 50*1024*1024 && (file.type.includes("mp3")||file.name.endsWith(".mp3"))) { selectedMp3File = file; document.getElementById("mp3FileName").innerText = `${file.name} (${(file.size/1024/1024).toFixed(2)} МБ)`; } else { alert("Файл не MP3 или >50МБ"); mp3FileInput.value=""; } });
+coverFileInput.addEventListener("change", (e) => { const file = e.target.files[0]; if(file && file.type.startsWith("image/")) { selectedCoverFile = file; const reader = new FileReader(); reader.onload = ev => { document.getElementById("coverPreviewImg").src = ev.target.result; document.getElementById("coverPreviewArea").style.display = "flex"; document.getElementById("coverName").innerText = file.name; }; reader.readAsDataURL(file); } else { alert("Только изображения"); coverFileInput.value=""; } });
+submitBtn.onclick = async () => { submitBtn.disabled=true; submitBtn.style.opacity="0.6"; await uploadTrackToFirebase(); submitBtn.disabled=false; submitBtn.style.opacity="1"; };
 function openModal() { resetModal(); overlay.classList.add("active"); }
 function closeModal() { overlay.classList.remove("active"); }
-openBtn.onclick = openModal;
-cancelBtn.onclick = closeModal;
-overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
-
+openBtn.onclick = openModal; cancelBtn.onclick = closeModal; overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
 document.getElementById("prevBtn").onclick = prevTrack;
 document.getElementById("nextBtn").onclick = nextTrack;
 playPauseBtn.onclick = togglePlay;
 document.getElementById("closePlayerBtn").onclick = closePlayer;
-
-loadAllTracks();
+loadAllTracksWithSplash();
 </script>
 </body>
 </html>
