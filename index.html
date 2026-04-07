@@ -548,7 +548,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-let tracks = []; // кэш треков
+let tracks = [];
 let currentTrackIdx = 0;
 let currentAudioUrl = null;
 
@@ -562,12 +562,8 @@ const durationSpan = document.getElementById("duration");
 const playerCoverImg = document.getElementById("playerCover");
 const titleSpan = document.getElementById("title");
 
-// ============= ЗАГРУЗКА ТРЕКОВ ИЗ FIREBASE =============
+// ============= ЗАГРУЗКА ТРЕКОВ ИЗ FIREBASE (БЕЗ ОВЕРЛЕЯ) =============
 async function loadAllTracks() {
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.classList.add("active");
-    document.getElementById("loadingStatus").textContent = "Загрузка плейлиста...";
-    
     try {
         const q = query(collection(db, "tracks"), orderBy("date", "desc"));
         const querySnapshot = await getDocs(q);
@@ -581,12 +577,9 @@ async function loadAllTracks() {
     } catch (error) {
         console.error("Ошибка загрузки:", error);
         showNotification("❌ Ошибка загрузки треков", "#ff6666");
-    } finally {
-        loadingOverlay.classList.remove("active");
     }
 }
 
-// Форматирование размера
 function formatFileSize(bytes) {
     if (!bytes) return "0 Б";
     if (bytes < 1024) return bytes + ' Б';
@@ -623,7 +616,6 @@ function showNotification(message, color = "#00ff66") {
     setTimeout(() => notif.remove(), 3000);
 }
 
-// Отрисовка списка
 function renderPlaylist() {
     const container = document.getElementById("playlist");
     container.innerHTML = "";
@@ -650,7 +642,6 @@ function renderPlaylist() {
             <button class="delete-song" data-id="${track.id}" data-title="${escapeHtml(track.title)}">🗑️</button>
         `;
         
-        // Воспроизведение
         const playArea = div.querySelector('.song-cover, .song-info');
         if (playArea) {
             playArea.addEventListener('click', (e) => {
@@ -660,7 +651,6 @@ function renderPlaylist() {
             });
         }
         
-        // Удаление
         const deleteBtn = div.querySelector('.delete-song');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', async (e) => {
@@ -675,23 +665,17 @@ function renderPlaylist() {
     }
 }
 
-// Удаление трека из Firebase
 async function deleteTrackFromFirebase(track) {
     try {
-        // Удаляем MP3 из Storage
         const mp3Ref = ref(storage, track.mp3Path);
         await deleteObject(mp3Ref);
         
-        // Удаляем обложку если есть
         if (track.coverPath) {
             const coverRef = ref(storage, track.coverPath);
             await deleteObject(coverRef);
         }
         
-        // Удаляем документ из Firestore
         await deleteDoc(doc(db, "tracks", track.id));
-        
-        // Обновляем список
         await loadAllTracks();
         
         if (currentTrackIdx >= 0 && tracks[currentTrackIdx]?.id === track.id) {
@@ -845,11 +829,9 @@ async function uploadTrackToFirebase() {
     try {
         const trackId = Date.now().toString() + "_" + Math.random().toString(36).substr(2, 6);
         
-        // Загружаем MP3
         updateLoadingProgress(5, "Загрузка MP3 в облако...");
         const mp3Path = `mp3/${trackId}.mp3`;
         const mp3Ref = ref(storage, mp3Path);
-        
         const mp3UploadTask = uploadBytesResumable(mp3Ref, selectedMp3File);
         
         const mp3Url = await new Promise((resolve, reject) => {
@@ -866,7 +848,6 @@ async function uploadTrackToFirebase() {
             );
         });
         
-        // Загружаем обложку если есть
         let coverUrl = null;
         let coverPath = null;
         
@@ -891,7 +872,6 @@ async function uploadTrackToFirebase() {
             });
         }
         
-        // Сохраняем в Firestore
         updateLoadingProgress(95, "Сохранение информации...");
         
         await addDoc(collection(db, "tracks"), {
@@ -911,7 +891,6 @@ async function uploadTrackToFirebase() {
         hideLoading();
         await loadAllTracks();
         
-        // Сброс формы
         document.getElementById("trackTitle").value = "";
         document.getElementById("trackArtist").value = "";
         selectedMp3File = null;
@@ -920,6 +899,8 @@ async function uploadTrackToFirebase() {
         document.getElementById("coverPreviewArea").style.display = "none";
         document.getElementById("mp3File").value = "";
         document.getElementById("coverFile").value = "";
+        document.getElementById("titleCount").innerText = "0";
+        document.getElementById("artistCount").innerText = "0";
         
         showNotification(`✅ "${titleVal}" добавлен в облако!`, "#aaffaa");
         closeModal();
@@ -1021,13 +1002,12 @@ openBtn.onclick = openModal;
 cancelBtn.onclick = closeModal;
 overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
 
-// Кнопки плеера
 document.getElementById("prevBtn").onclick = prevTrack;
 document.getElementById("nextBtn").onclick = nextTrack;
 playPauseBtn.onclick = togglePlay;
 document.getElementById("closePlayerBtn").onclick = closePlayer;
 
-// ЗАПУСК
+// ЗАПУСК (без оверлея)
 loadAllTracks();
 </script>
 </body>
