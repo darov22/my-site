@@ -421,27 +421,26 @@ body {
 }
 .fs-back-btn:active { transform: scale(0.94); background: #ff7a00; color: black; }
 
-/* Центральная пластинка с вращением */
+/* Центральная пластинка — ИДЕАЛЬНО КРУГЛАЯ */
 .vinyl-container {
     position: relative;
-    width: 280px;
-    height: 280px;
-    margin-bottom: 48px;
-}
-@media (min-width: 500px) {
-    .vinyl-container { width: 340px; height: 340px; }
+    width: min(65vw, 65vh, 340px);
+    height: min(65vw, 65vh, 340px);
+    margin: 0 auto 40px auto;
 }
 .vinyl-disc {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #222, #050505);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 8px rgba(255,122,0,0.3), 0 0 0 12px rgba(0,0,0,0.5);
+    background: radial-gradient(circle at 30% 30%, #2a2a2a, #080808);
+    box-shadow: 0 20px 35px rgba(0,0,0,0.7), 0 0 0 6px rgba(255,122,0,0.4), 0 0 0 12px rgba(0,0,0,0.5);
     display: flex;
     align-items: center;
     justify-content: center;
     animation: spinVinyl 8s linear infinite;
     animation-play-state: paused;
+    overflow: hidden;
+    position: relative;
 }
 .fullscreen-player.playing .vinyl-disc {
     animation-play-state: running;
@@ -450,30 +449,30 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-/* Центральный стикер с аватаркой трека */
+/* Центральный стикер (аватарка) — тоже круглый */
 .vinyl-center {
-    width: 130px;
-    height: 130px;
+    width: 38%;
+    height: 38%;
     border-radius: 50%;
-    background: #2c2c2c;
+    background: #111;
     border: 3px solid #ffaa55;
-    box-shadow: 0 0 0 5px rgba(0,0,0,0.6);
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.6);
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #111;
 }
 .vinyl-center-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
 }
 /* Название и исполнитель под пластинкой */
 .fs-track-info {
     text-align: center;
-    margin-top: 24px;
-    margin-bottom: 32px;
+    margin-top: 16px;
+    margin-bottom: 28px;
 }
 .fs-track-title {
     font-size: 1.9rem;
@@ -483,6 +482,7 @@ body {
     background-clip: text;
     color: transparent;
     margin-bottom: 8px;
+    padding: 0 20px;
 }
 .fs-track-artist {
     font-size: 1.1rem;
@@ -493,7 +493,7 @@ body {
 .fs-controls {
     display: flex;
     gap: 48px;
-    margin: 24px 0 20px;
+    margin: 20px 0 20px;
 }
 .fs-controls button {
     background: rgba(30,30,30,0.9);
@@ -526,7 +526,6 @@ body {
     color: #ccc;
     margin-top: 6px;
 }
-/* закрыть кнопка дубль? но бэк есть */
 
 .navbar {
     position: fixed;
@@ -671,6 +670,24 @@ body {
     font-size: 1.6rem;
     font-weight: bold;
     color: #ffaa66;
+}
+
+/* Дополнительная защита для круглой формы на всех экранах */
+@media (max-width: 550px) {
+    .vinyl-container {
+        width: min(70vw, 70vh, 280px);
+        height: min(70vw, 70vh, 280px);
+    }
+    .fs-track-title { font-size: 1.5rem; }
+    .fs-controls button { width: 60px; height: 60px; font-size: 28px; gap: 36px; }
+}
+@media (max-width: 380px) {
+    .vinyl-container {
+        width: min(75vw, 75vh, 240px);
+        height: min(75vw, 75vh, 240px);
+    }
+    .fs-track-title { font-size: 1.3rem; }
+    .fs-controls button { width: 54px; height: 54px; font-size: 24px; }
 }
 </style>
 </head>
