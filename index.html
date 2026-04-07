@@ -657,12 +657,15 @@ function hideLoading() {
     loadingOverlay.classList.remove("active");
 }
 
-// Конвертация файла в base64 с прогрессом
-function fileToBase64WithProgress(file, onProgress) {
+// Конвертация файла в blob с прогрессом
+function fileToBlobWithProgress(file, onProgress) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         
-        reader.onload = () => resolve(reader.result);
+        reader.onload = () => {
+            const blob = new Blob([reader.result], { type: 'audio/mpeg' });
+            resolve(blob);
+        };
         reader.onerror = (error) => reject(error);
         
         reader.onprogress = (event) => {
@@ -672,7 +675,7 @@ function fileToBase64WithProgress(file, onProgress) {
             }
         };
         
-        reader.readAsDataURL(file);
+        reader.readAsArrayBuffer(file);
     });
 }
 
@@ -712,26 +715,31 @@ function renderPlaylist() {
         `;
         
         // Воспроизведение по клику на трек
-        div.querySelector('.song-cover, .song-info').addEventListener('click', (e) => {
-            e.stopPropagation();
-            loadTrackByIdx(idx);
-            playAudio();
-        });
+        const playArea = div.querySelector('.song-cover, .song-info');
+        if (playArea) {
+            playArea.addEventListener('click', (e) => {
+                e.stopPropagation();
+                loadTrackByIdx(idx);
+                playAudio();
+            });
+        }
         
         // Удаление трека
         const deleteBtn = div.querySelector('.delete-song');
-        deleteBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (confirm(`Удалить трек "${track.title}"?`)) {
-                await deleteTrackFromDB(track.id);
-                await loadAllTracks();
-                renderPlaylist();
-                if (currentTrackIdx === idx) {
-                    closePlayer();
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Удалить трек "${track.title}"?`)) {
+                    await deleteTrackFromDB(track.id);
+                    await loadAllTracks();
+                    renderPlaylist();
+                    if (currentTrackIdx === idx) {
+                        closePlayer();
+                    }
+                    showNotification(`🗑️ "${track.title}" удалён`, "#ff6666");
                 }
-                showNotification(`🗑️ "${track.title}" удалён`, "#ff6666");
-            }
-        });
+            });
+        }
         
         container.appendChild(div);
     }
@@ -925,160 +933,4 @@ mp3FileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if(!file) return;
     if(file.size > 100 * 1024 * 1024) { 
-        alert("❌ MP3 превышает 100 МБ! (максимум 100 МБ)"); 
-        mp3FileInput.value = ""; 
-        return; 
-    }
-    if(!file.type.includes("mp3") && !file.name.endsWith(".mp3")) { 
-        alert("❌ Только MP3 файлы"); 
-        mp3FileInput.value = ""; 
-        return; 
-    }
-    selectedMp3File = file;
-    mp3FileNameSpan.innerText = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} МБ)`;
-});
-
-coverFileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    if(!file.type.startsWith("image/")) { 
-        alert("Только изображения (jpg/png)"); 
-        coverFileInput.value = ""; 
-        return; 
-    }
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        selectedCoverBase64 = ev.target.result;
-        coverPreviewImg.src = selectedCoverBase64;
-        coverPreviewArea.style.display = "flex";
-        coverNameSpan.innerText = file.name;
-    };
-    reader.readAsDataURL(file);
-});
-
-// Загрузка трека в IndexedDB с реальным прогрессом
-async function processTrackWithRealProgress() {
-    let titleVal = titleInput.value.trim();
-    if(!titleVal) { alert("Укажите название трека"); return false; }
-    if(titleVal.length > 100) titleVal = titleVal.slice(0,100);
-    let artistVal = artistInput.value.trim();
-    if(artistVal.length > 50) artistVal = artistVal.slice(0,50);
-    if(!artistVal) artistVal = "Неизвестный исполнитель";
-    if(!selectedMp3File) { alert("❌ Загрузите MP3 файл (до 100 МБ)"); return false; }
-    
-    // Проверка свободного места (оценочно)
-    const currentSize = await getTotalStorageSize();
-    const estimatedNewSize = currentSize + selectedMp3File.size;
-    if (estimatedNewSize > 1024 * 1024 * 1024) {
-        alert(`❌ Превышен лимит хранилища (1 ГБ)!\nСвободно: ${formatFileSize(1024 * 1024 * 1024 - currentSize)}`);
-        return false;
-    }
-    
-    showLoadingWithProgress();
-    
-    try {
-        // Этап 1: Инициализация
-        updateLoadingProgress(0, "Инициализация...", `Файл: ${selectedMp3File.name}`);
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        // Этап 2: Читаем файл MP3
-        updateLoadingProgress(2, "Чтение MP3 файла...", `Размер: ${(selectedMp3File.size / 1024 / 1024).toFixed(2)} МБ`);
-        
-        const mp3Blob = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                // Создаём Blob из ArrayBuffer
-                const blob = new Blob([reader.result], { type: 'audio/mpeg' });
-                resolve(blob);
-            };
-            reader.onerror = reject;
-            reader.onprogress = (event) => {
-                if (event.lengthComputable) {
-                    const percent = 2 + (event.loaded / event.total) * 78;
-                    const loadedMB = event.loaded / 1024 / 1024;
-                    const totalMB = event.total / 1024 / 1024;
-                    updateLoadingProgress(
-                        percent, 
-                        "Чтение MP3 файла...", 
-                        `Прочитано: ${loadedMB.toFixed(2)} из ${totalMB.toFixed(2)} МБ`
-                    );
-                }
-            };
-            reader.readAsArrayBuffer(selectedMp3File);
-        });
-        
-        // Этап 3: Создаём объект трека
-        updateLoadingProgress(85, "Сохранение в базу данных...", "Запись в IndexedDB");
-        
-        const newTrack = {
-            id: Date.now() + '_' + Math.random().toString(36).substr(2, 8),
-            title: titleVal,
-            artist: artistVal,
-            coverDataURL: selectedCoverBase64 || null,
-            mp3File: mp3Blob,
-            size: mp3Blob.size,
-            date: Date.now()
-        };
-        
-        await saveTrackToDB(newTrack);
-        
-        updateLoadingProgress(95, "Обновление плейлиста...", "");
-        await loadAllTracks();
-        
-        updateLoadingProgress(98, "Готово!", "");
-        await new Promise(resolve => setTimeout(resolve, 150));
-        
-        updateLoadingProgress(100, "Завершено!", "Трек успешно добавлен");
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        hideLoading();
-        renderPlaylist();
-        closeModal();
-        resetModal();
-        
-        showNotification(`✅ "${titleVal}" успешно добавлен! (${formatFileSize(selectedMp3File.size)})`, "#aaffaa");
-        
-        return true;
-    } catch (error) {
-        hideLoading();
-        console.error(error);
-        alert("Ошибка при загрузке файла: " + error.message);
-        return false;
-    }
-}
-
-submitBtn.onclick = async () => {
-    submitBtn.disabled = true;
-    submitBtn.style.opacity = "0.6";
-    submitBtn.style.cursor = "wait";
-    
-    await processTrackWithRealProgress();
-    
-    submitBtn.disabled = false;
-    submitBtn.style.opacity = "1";
-    submitBtn.style.cursor = "pointer";
-};
-
-function openModal() { resetModal(); overlay.classList.add("active"); }
-function closeModal() { overlay.classList.remove("active"); }
-openBtn.onclick = openModal;
-cancelBtn.onclick = closeModal;
-overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
-
-// Инициализация контролов плеера
-document.getElementById("prevBtn").onclick = prevTrack;
-document.getElementById("nextBtn").onclick = nextTrack;
-playPauseBtn.onclick = togglePlay;
-document.getElementById("closePlayerBtn").onclick = closePlayer;
-
-// Запуск приложения
-async function init() {
-    await openDatabase();
-    await loadAllTracks();
-    renderPlaylist();
-}
-
-init();
-</script>
-</body>
-</html>
+        alert("❌ MP3 превышает
