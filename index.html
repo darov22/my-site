@@ -2,172 +2,465 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Music Player</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>NEO MUSIC · Оранжевый пульс</title>
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none; /* modern touch, keeps UI clean */
+}
+
 body {
-    margin:0;
-    font-family: Arial;
-    background:#0f0f0f;
-    color:white;
-    text-align:center;
+    background: #0b0b0b;
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, 'Arial', sans-serif;
+    color: #f0f0f0;
+    min-height: 100vh;
+    padding-bottom: 100px;
+    overflow-x: hidden;
 }
 
-/* НЕОН */
-.player::before {
-    content:"";
-    position:absolute;
-    top:-50px;
-    left:50%;
-    transform:translateX(-50%);
-    width:80%;
-    height:120px;
-    background: radial-gradient(circle, rgba(255,122,0,0.6), transparent);
-    filter: blur(40px);
-    z-index:-1;
+/* ГЛАВНАЯ ШАПКА + ПЛЮСИК */
+.header-plus {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px 12px 24px;
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 122, 0, 0.25);
+    position: sticky;
+    top: 0;
+    z-index: 20;
 }
 
-/* Плеер */
+.header-plus h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #ff9a3c, #ff7a00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 4px rgba(255, 122, 0, 0.3);
+}
+
+.plus-add-btn {
+    background: linear-gradient(145deg, #1f1f1f, #141414);
+    border: 1px solid rgba(255, 122, 0, 0.5);
+    border-radius: 60px;
+    width: 48px;
+    height: 48px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #ff9f3c;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.plus-add-btn:hover {
+    transform: scale(1.02);
+    background: #2a2a2a;
+    border-color: #ff9a3c;
+    box-shadow: 0 0 10px rgba(255, 122, 0, 0.5);
+}
+
+.plus-add-btn:active {
+    transform: scale(0.92);
+}
+
+/* ОВЕРЛЕЙ / МОДАЛЬНОЕ ОКНО (стиль чёрно-оранжевый) */
+.overlay-form {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.2s, opacity 0.25s ease;
+}
+
+.overlay-form.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.modal-card {
+    background: #121212;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 36px;
+    padding: 28px 24px 32px;
+    border: 1px solid rgba(255, 122, 0, 0.6);
+    box-shadow: 0 25px 45px rgba(0,0,0,0.6), 0 0 0 1px rgba(255, 122, 0, 0.2);
+    transition: transform 0.2s;
+}
+
+.modal-card h3 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #ffaa55, #ff7a00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-align: center;
+}
+
+.input-group {
+    margin-bottom: 22px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #ffa559;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 28px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    color: #fff;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.input-group input:focus {
+    border-color: #ff7a00;
+    box-shadow: 0 0 0 2px rgba(255, 122, 0, 0.3);
+    background: #252525;
+}
+
+.char-counter {
+    font-size: 11px;
+    text-align: right;
+    margin-top: 5px;
+    color: #aaa;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 40px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.2s;
+    border: none;
+}
+
+.btn-cancel {
+    background: #2c2c2c;
+    color: #ccc;
+}
+
+.btn-cancel:hover {
+    background: #3a3a3a;
+    color: white;
+}
+
+.btn-submit {
+    background: linear-gradient(95deg, #ff7a00, #ffaa33);
+    color: #111;
+    box-shadow: 0 2px 8px rgba(255, 122, 0, 0.4);
+}
+
+.btn-submit:hover {
+    transform: scale(0.97);
+    filter: brightness(1.02);
+}
+
+/* ПЛЕЙЛИСТ (список треков) */
+#playlist {
+    margin: 24px 20px 110px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.song {
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(4px);
+    padding: 16px 20px;
+    border-radius: 28px;
+    border-left: 4px solid #ff7a00;
+    transition: all 0.2s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.song:hover {
+    background: #232323;
+    transform: translateX(5px);
+    border-left-width: 6px;
+}
+
+.song-icon {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 0 2px #ff7a00);
+}
+
+.song-info {
+    flex: 1;
+    text-align: left;
+}
+
+.song-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: -0.2px;
+}
+
+.song-artist {
+    font-size: 0.7rem;
+    color: #ffa55c;
+    margin-top: 4px;
+}
+
+.empty-playlist-msg {
+    text-align: center;
+    padding: 50px 20px;
+    background: #111;
+    border-radius: 40px;
+    color: #777;
+    font-style: italic;
+}
+
+/* НЕОН ПЛЕЕР (всплывающий снизу) */
 .player {
     position: fixed;
     bottom: 90px;
     left: 0;
     width: 100%;
-    background: rgba(25,25,25,0.95);
-    backdrop-filter: blur(15px);
-    padding: 20px 0 10px;
-    border-top-left-radius: 25px;
-    border-top-right-radius: 25px;
+    background: rgba(18, 18, 18, 0.96);
+    backdrop-filter: blur(20px);
+    padding: 16px 20px 18px;
+    border-top-left-radius: 32px;
+    border-top-right-radius: 32px;
     transform: translateY(150px);
     opacity: 0;
-    transition: 0.4s;
+    transition: 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    z-index: 50;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.7);
+    border-top: 1px solid rgba(255, 122, 0, 0.5);
 }
-.player.show { transform: translateY(0); opacity:1; }
 
-/* КРЕСТИК */
+.player.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
 .close-btn {
-    position:absolute;
-    top:10px;
-    left:10px;
-    font-size:18px;
-    background:none;
-    border:none;
-    color:#ff7a00;
-    cursor:pointer;
-    transition:0.2s;
+    position: absolute;
+    top: 12px;
+    left: 18px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #ff7a00;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: bold;
 }
-.close-btn:hover { transform: scale(1.2); }
-.close-btn:active { transform: scale(0.9); }
 
-/* КНОПКИ */
+.close-btn:hover {
+    transform: scale(1.2);
+    text-shadow: 0 0 4px #ff7a00;
+}
+
 .controls {
-    display:flex;
-    justify-content:center;
-    gap:15px;
-    margin-bottom:5px;
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin: 10px 0 12px;
 }
 
 .controls button {
-    background:linear-gradient(135deg,#ff7a00,#ffbb33);
-    border:none;
-    border-radius:50%;
-    width:45px;
-    height:45px;
-    color:white;
-    font-size:16px;
-    cursor:pointer;
-    transition:0.2s;
+    background: linear-gradient(145deg, #2a2a2a, #1c1c1c);
+    border: none;
+    border-radius: 60px;
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+    color: #ffaa55;
+    cursor: pointer;
+    transition: 0.15s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
-.controls button:active { transform: scale(0.85); }
 
-/* ПРОГРЕСС */
+.controls button:active {
+    transform: scale(0.88);
+    background: #ff7a00;
+    color: black;
+}
+
 .progress-container {
-    width:85%;
-    margin:0 auto;
+    width: 92%;
+    margin: 6px auto;
 }
+
 .progress {
-    height:4px;
-    background:#333;
-    border-radius:10px;
-    cursor:pointer;
+    height: 5px;
+    background: #2c2c2c;
+    border-radius: 12px;
+    cursor: pointer;
 }
+
 .progress-bar {
-    height:100%;
-    width:0%;
-    background:#ff7a00;
-    border-radius:10px;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff7a00, #ffbc4a);
+    border-radius: 12px;
 }
 
-/* ВРЕМЯ */
 .time {
-    display:flex;
-    justify-content:space-between;
-    font-size:10px;
-    color:#aaa;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 6px;
 }
 
-/* НИЖНИЙ БЛОК */
 .bottom-info {
-    position:absolute;
-    right:15px;
-    bottom:10px;
-    text-align:right;
+    position: absolute;
+    right: 20px;
+    bottom: 14px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
 }
 
 .cover {
-    width:50px;
-    height:50px;
-    background:linear-gradient(135deg,#ff7a00,#ffbb33);
-    border-radius:10px;
-    margin-bottom:5px;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(145deg, #ff7a00, #e06500);
+    border-radius: 14px;
+    box-shadow: 0 0 8px rgba(255, 122, 0, 0.5);
 }
 
 #title {
-    font-size:13px;
+    font-size: 13px;
+    font-weight: 500;
+    background: #1f1f1f;
+    padding: 4px 12px;
+    border-radius: 50px;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* СПИСОК */
-.song {
-    padding:12px;
-    border-bottom:1px solid #222;
-    cursor:pointer;
-}
-.song:hover { background:#1a1a1a; }
-
-/* NAVBAR */
+/* NAVBAR снизу */
 .navbar {
     position: fixed;
-    bottom:0;
-    left:10px;
-    right:10px;
-    height:75px;
-    background: rgba(20,20,20,0.9);
-    border-radius:25px;
-    display:flex;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    height: 70px;
+    background: rgba(12, 12, 12, 0.92);
+    backdrop-filter: blur(15px);
+    border-radius: 38px;
+    display: flex;
     justify-content: space-around;
-    align-items:center;
-    box-shadow:0 0 25px rgba(255,122,0,0.5);
+    align-items: center;
+    box-shadow: 0 0 20px rgba(255, 122, 0, 0.35);
+    border: 1px solid rgba(255, 122, 0, 0.3);
+    z-index: 40;
+}
+
+.navbar div {
+    font-size: 1.7rem;
+    opacity: 0.7;
+    transition: 0.2s;
+    cursor: default;
+}
+
+.navbar div:hover {
+    opacity: 1;
+    text-shadow: 0 0 6px #ff7a00;
+}
+
+/* адаптив */
+@media (max-width: 500px) {
+    .header-plus h2 {
+        font-size: 1.4rem;
+    }
+    .song {
+        padding: 12px 16px;
+    }
 }
 </style>
 </head>
 <body>
 
-<h2>🎵 Музыка</h2>
+<div class="header-plus">
+    <h2>🎧 ОРАНЖЕВЫЙ ПУЛЬС</h2>
+    <button class="plus-add-btn" id="openModalBtn" aria-label="Добавить трек">+</button>
+</div>
+
 <div id="playlist"></div>
 
-<div class="player" id="player">
-
-    <!-- КРЕСТИК -->
-    <button class="close-btn" onclick="closePlayer()">✖</button>
-
-    <audio id="audio"></audio>
-
-    <div class="controls">
-        <button onclick="prev()">⏮</button>
-        <button id="playBtn" onclick="togglePlay()">▶</button>
-        <button onclick="next()">⏭</button>
+<!-- Модальное окно (плюсик) -->
+<div id="overlayForm" class="overlay-form">
+    <div class="modal-card">
+        <h3>✨ Новый трек</h3>
+        <div class="input-group">
+            <label>🎵 НАЗВАНИЕ ТРЕКА (макс. 100)</label>
+            <input type="text" id="trackTitleInput" maxlength="100" placeholder="Например: Тени города" autocomplete="off">
+            <div class="char-counter"><span id="titleCounter">0</span>/100</div>
+        </div>
+        <div class="input-group">
+            <label>🎤 АВТОР / ИСПОЛНИТЕЛЬ (макс. 50)</label>
+            <input type="text" id="trackArtistInput" maxlength="50" placeholder="Например: Neon Echoes" autocomplete="off">
+            <div class="char-counter"><span id="artistCounter">0</span>/50</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" id="cancelModalBtn">Отмена</button>
+            <button class="btn-submit" id="submitTrackBtn">➕ Добавить</button>
+        </div>
     </div>
+</div>
 
+<div class="player" id="player">
+    <button class="close-btn" id="closePlayerBtn">✖</button>
+    <audio id="audio"></audio>
+    <div class="controls">
+        <button id="prevBtn">⏮</button>
+        <button id="playPauseBtn">▶</button>
+        <button id="nextBtn">⏭</button>
+    </div>
     <div class="progress-container">
         <div class="progress" id="progress">
             <div class="progress-bar" id="progressBar"></div>
@@ -177,7 +470,6 @@ body {
             <span id="duration">0:00</span>
         </div>
     </div>
-
     <div class="bottom-info">
         <div class="cover"></div>
         <div id="title">Трек</div>
@@ -192,96 +484,286 @@ body {
 </div>
 
 <script>
-const songs = [
-    { title:"Трек 1", src:"https://darov22.github.io/my-site/music/song1.mp3"},
-    { title:"Трек 2", src:"https://darov22.github.io/my-site/music/song2.mp3"}
+// ---------- БАЗОВЫЙ ПЛЕЙЛИСТ (демо) ----------
+let songs = [
+    { title: "Пульс города", artist: "Neon Drift", src: "https://darov22.github.io/my-site/music/song1.mp3" },
+    { title: "Лунный оранж", artist: "Solar Echo", src: "https://darov22.github.io/my-site/music/song2.mp3" }
 ];
 
-let current = 0;
+// для каждого трека уникальный src, но так как demo ссылки одинаковые (song1, song2), 
+// чтобы добавленные не ломались – для новых треков будем генерировать "фейковый" src? 
+// но лучше дать возможность использовать реальные url, но в рамках задачи — мы создаём треки с placeholder аудио.
+// Однако пользователь ожидает, что новый трек можно добавить и он появится в списке.
+// Реализуем: для новых треков, т.к. реальных mp3 нет, будем использовать ту же демо-ссылку song1.mp3 
+// (но с разными названиями, чтобы UI показывал корректно). В реальном проекте можно загружать своё аудио.
+// Для чистоты опыта: при добавлении трека будет использоваться один из существующих источников (song1), 
+// но это позволит прослушивать трек с кастомным именем/исполнителем. Демонстрация функционала.
+// Пользователь может добавить сколько угодно треков с метаданными.
 
-const audio = document.getElementById("audio");
-const title = document.getElementById("title");
-const playlist = document.getElementById("playlist");
-const player = document.getElementById("player");
+let currentIndex = 0;
+let audio = document.getElementById("audio");
+let titleSpan = document.getElementById("title");
+let playlistDiv = document.getElementById("playlist");
+let playerDiv = document.getElementById("player");
 
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
+let progress = document.getElementById("progress");
+let progressBar = document.getElementById("progressBar");
+let currentTimeEl = document.getElementById("currentTime");
+let durationEl = document.getElementById("duration");
+let playPauseBtn = document.getElementById("playPauseBtn");
 
-const currentTimeEl = document.getElementById("currentTime");
-const durationEl = document.getElementById("duration");
-
-const playBtn = document.getElementById("playBtn");
-
-function formatTime(sec){
+// Вспомогательные функции
+function formatTime(sec) {
+    if (isNaN(sec) || sec === Infinity) return "0:00";
     let m = Math.floor(sec / 60);
     let s = Math.floor(sec % 60);
-    if(s < 10) s = "0" + s;
+    if (s < 10) s = "0" + s;
     return m + ":" + s;
 }
 
-function loadSong(index){
-    current = index;
-    audio.src = songs[index].src;
-    title.innerText = songs[index].title;
-    player.classList.add("show");
-}
-
-function togglePlay(){
-    audio.paused ? audio.play() : audio.pause();
-}
-
-function updatePlayBtn(){
-    playBtn.innerText = audio.paused ? "▶" : "⏸";
-}
-
-function next(){
-    current = (current + 1) % songs.length;
-    loadSong(current);
-    audio.play();
-}
-
-function prev(){
-    current = (current - 1 + songs.length) % songs.length;
-    loadSong(current);
-    audio.play();
-}
-
-audio.addEventListener("timeupdate", () => {
-    const currentTime = audio.currentTime;
-    const duration = audio.duration;
-
-    currentTimeEl.innerText = formatTime(currentTime);
-
-    if(duration){
-        durationEl.innerText = formatTime(duration);
-        progressBar.style.width = (currentTime / duration * 100) + "%";
+// отрисовка списка треков (с артистами)
+function renderPlaylist() {
+    playlistDiv.innerHTML = "";
+    if (songs.length === 0) {
+        let emptyMsg = document.createElement("div");
+        emptyMsg.className = "empty-playlist-msg";
+        emptyMsg.innerText = "🎵 Нет треков. Нажми ➕, чтобы добавить";
+        playlistDiv.appendChild(emptyMsg);
+        return;
     }
-});
+    songs.forEach((song, idx) => {
+        const songEl = document.createElement("div");
+        songEl.className = "song";
+        // иконка
+        const iconSpan = document.createElement("span");
+        iconSpan.className = "song-icon";
+        iconSpan.innerText = "🎧";
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "song-info";
+        const titleSpanInner = document.createElement("div");
+        titleSpanInner.className = "song-title";
+        titleSpanInner.innerText = song.title || "Без названия";
+        const artistSpan = document.createElement("div");
+        artistSpan.className = "song-artist";
+        artistSpan.innerText = song.artist ? `🎤 ${song.artist}` : "🎤 неизвестен";
+        infoDiv.appendChild(titleSpanInner);
+        infoDiv.appendChild(artistSpan);
+        songEl.appendChild(iconSpan);
+        songEl.appendChild(infoDiv);
+        songEl.onclick = () => {
+            loadSong(idx);
+            audio.play().catch(e => console.log("autoplay blocked", e));
+        };
+        playlistDiv.appendChild(songEl);
+    });
+}
 
-audio.addEventListener("play", updatePlayBtn);
-audio.addEventListener("pause", updatePlayBtn);
+// загрузить трек по индексу
+function loadSong(index) {
+    if (songs.length === 0) return;
+    if (index < 0) index = 0;
+    if (index >= songs.length) index = songs.length - 1;
+    currentIndex = index;
+    const track = songs[currentIndex];
+    audio.src = track.src;
+    titleSpan.innerText = track.title ? `${track.title} · ${track.artist || ""}` : track.title;
+    // показываем плеер
+    playerDiv.classList.add("show");
+    // обновить кнопку плей
+    updatePlayBtnUI();
+    // сбросить прогресс
+    progressBar.style.width = "0%";
+    currentTimeEl.innerText = "0:00";
+    if (audio.duration) {
+        durationEl.innerText = formatTime(audio.duration);
+    } else {
+        durationEl.innerText = "0:00";
+    }
+}
 
-progress.addEventListener("click", (e) => {
-    const width = progress.clientWidth;
-    const clickX = e.offsetX;
-    audio.currentTime = (clickX / width) * audio.duration;
-});
+function updatePlayBtnUI() {
+    if (audio.paused) playPauseBtn.innerText = "▶";
+    else playPauseBtn.innerText = "⏸";
+}
 
-/* ЗАКРЫТИЕ ПЛЕЕРА */
-function closePlayer(){
-    player.classList.remove("show");
+function togglePlay() {
+    if (songs.length === 0) return;
+    if (audio.paused) {
+        audio.play().catch(e => console.warn(e));
+    } else {
+        audio.pause();
+    }
+}
+
+function nextTrack() {
+    if (songs.length === 0) return;
+    currentIndex = (currentIndex + 1) % songs.length;
+    loadSong(currentIndex);
+    audio.play().catch(e => console.log(e));
+}
+
+function prevTrack() {
+    if (songs.length === 0) return;
+    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+    loadSong(currentIndex);
+    audio.play().catch(e => console.log(e));
+}
+
+function closePlayer() {
+    playerDiv.classList.remove("show");
     audio.pause();
     audio.currentTime = 0;
 }
 
-songs.forEach((song,index)=>{
-    const div=document.createElement("div");
-    div.className="song";
-    div.innerText=song.title;
-    div.onclick=()=>{ loadSong(index); audio.play(); };
-    playlist.appendChild(div);
+// Добавление нового трека через модалку (плюсик)
+// открытие / закрытие модалки
+const overlay = document.getElementById("overlayForm");
+const openModalBtn = document.getElementById("openModalBtn");
+const cancelModalBtn = document.getElementById("cancelModalBtn");
+const submitTrackBtn = document.getElementById("submitTrackBtn");
+const trackTitleInput = document.getElementById("trackTitleInput");
+const trackArtistInput = document.getElementById("trackArtistInput");
+const titleCounterSpan = document.getElementById("titleCounter");
+const artistCounterSpan = document.getElementById("artistCounter");
+
+function openModal() {
+    trackTitleInput.value = "";
+    trackArtistInput.value = "";
+    titleCounterSpan.innerText = "0";
+    artistCounterSpan.innerText = "0";
+    overlay.classList.add("active");
+}
+
+function closeModal() {
+    overlay.classList.remove("active");
+}
+
+// счетчики символов
+trackTitleInput.addEventListener("input", () => {
+    let len = trackTitleInput.value.length;
+    titleCounterSpan.innerText = len;
+});
+trackArtistInput.addEventListener("input", () => {
+    let len = trackArtistInput.value.length;
+    artistCounterSpan.innerText = len;
+});
+
+// добавить трек в массив
+function addNewTrack() {
+    let titleRaw = trackTitleInput.value.trim();
+    let artistRaw = trackArtistInput.value.trim();
+    if (titleRaw === "") {
+        alert("❌ Укажите название трека (обязательно)");
+        return;
+    }
+    if (titleRaw.length > 100) titleRaw = titleRaw.slice(0,100);
+    if (artistRaw.length > 50) artistRaw = artistRaw.slice(0,50);
+    if (artistRaw === "") artistRaw = "Неизвестный автор";
+    
+    // Для нового трека – генерируем аудио-ссылку. 
+    // Так как у нас нет сервера загрузки, используем существующие демо-треки по очереди,
+    // но чтобы каждый новый трек имел свой "src", дадим ссылку song1 или song2 ротацией,
+    // либо можно назначить song1, но для разнообразия будем использовать song1.mp3 и song2.mp3 по очереди.
+    // Это демо, зато функционал добавления работает идеально, трек можно прослушать с нужным именем.
+    // Пользователь увидит новый трек в списке, сможет нажать — проиграется одна из базовых мелодий.
+    // Для максимальной логики: назначим src = songs.length % 2 === 0 ? "https://darov22.github.io/my-site/music/song1.mp3" : "https://darov22.github.io/my-site/music/song2.mp3"
+    // Но важно: чтобы не сломать существующие треки, оставим их оригинальные ссылки.
+    // Новые треки будут иметь чередующийся источник, чтобы не было скучно.
+    let newSrc;
+    if (songs.length % 2 === 0) {
+        newSrc = "https://darov22.github.io/my-site/music/song1.mp3";
+    } else {
+        newSrc = "https://darov22.github.io/my-site/music/song2.mp3";
+    }
+    // но чтобы каждый раз уникальный не обязательно, главное — работает.
+    const newTrack = {
+        title: titleRaw,
+        artist: artistRaw,
+        src: newSrc
+    };
+    songs.push(newTrack);
+    renderPlaylist();
+    closeModal();
+    // маленький фидбек: не переключаем плеер, но если плеер закрыт, ничего страшного.
+    // Если плеер показывал старый трек, он продолжает играть. 
+    // но для UX можно показать уведомление.
+    let notif = document.createElement("div");
+    notif.innerText = `✅ "${titleRaw}" добавлен!`;
+    notif.style.position = "fixed";
+    notif.style.bottom = "180px";
+    notif.style.left = "20px";
+    notif.style.right = "20px";
+    notif.style.backgroundColor = "#2a2a2a";
+    notif.style.color = "#ffaa66";
+    notif.style.padding = "12px";
+    notif.style.borderRadius = "40px";
+    notif.style.textAlign = "center";
+    notif.style.zIndex = "999";
+    notif.style.border = "1px solid #ff7a00";
+    notif.style.backdropFilter = "blur(8px)";
+    document.body.appendChild(notif);
+    setTimeout(() => { notif.remove(); }, 1800);
+}
+
+// события модалки
+openModalBtn.addEventListener("click", openModal);
+cancelModalBtn.addEventListener("click", closeModal);
+submitTrackBtn.addEventListener("click", addNewTrack);
+overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal();
+});
+
+// управление плеером
+playPauseBtn.addEventListener("click", togglePlay);
+document.getElementById("prevBtn").addEventListener("click", prevTrack);
+document.getElementById("nextBtn").addEventListener("click", nextTrack);
+document.getElementById("closePlayerBtn").addEventListener("click", closePlayer);
+
+// прогресс-бар
+audio.addEventListener("timeupdate", () => {
+    if (audio.duration && isFinite(audio.duration)) {
+        let percent = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = percent + "%";
+        currentTimeEl.innerText = formatTime(audio.currentTime);
+        durationEl.innerText = formatTime(audio.duration);
+    } else {
+        durationEl.innerText = "0:00";
+    }
+});
+audio.addEventListener("loadedmetadata", () => {
+    if (audio.duration && isFinite(audio.duration)) {
+        durationEl.innerText = formatTime(audio.duration);
+    }
+});
+progress.addEventListener("click", (e) => {
+    const rect = progress.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    if (audio.duration && isFinite(audio.duration)) {
+        audio.currentTime = (clickX / width) * audio.duration;
+    }
+});
+audio.addEventListener("play", () => updatePlayBtnUI());
+audio.addEventListener("pause", () => updatePlayBtnUI());
+audio.addEventListener("ended", () => {
+    nextTrack();
+});
+
+// загружаем плейлист стартовый + рендер
+renderPlaylist();
+
+// Инициализация: если есть треки, но плеер не открыт - автоматически не открываем,
+// но первый клик по треку всё покажет.
+// Также если закрыть плеер кнопкой, всё работает.
+// Доп: если нет треков, плеер скрыт.
+// дополнительная защита
+window.addEventListener("load", () => {
+    if (songs.length) {
+        // Не грузим трек принудительно до клика, просто подготовка
+        audio.src = songs[0].src;
+        titleSpan.innerText = songs[0].title + (songs[0].artist ? ` · ${songs[0].artist}` : "");
+    }
 });
 </script>
-
 </body>
 </html>
