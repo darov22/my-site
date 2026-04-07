@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>NEO MUSIC · Загрузка MP3 + обложки (1 ГБ хранилище)</title>
+<title>NEO MUSIC · ОНЛАЙН ПЛЕЕР (Firebase)</title>
 <style>
 * {
     margin: 0;
@@ -62,7 +62,7 @@ body {
 }
 .plus-add-btn:hover { transform: scale(1.02); background: #2a2a2a; border-color: #ff9a3c; }
 
-/* МОДАЛЬНОЕ ОКНО (загрузка mp3 + обложка) */
+/* МОДАЛЬНОЕ ОКНО */
 .overlay-form {
     position: fixed;
     top: 0;
@@ -363,7 +363,7 @@ body {
 .navbar div { font-size: 1.7rem; opacity: 0.7; cursor: pointer; transition: 0.2s; }
 .navbar div:hover { opacity: 1; transform: scale(1.1); }
 
-/* АНИМАЦИЯ ЗАГРУЗКИ С РЕАЛЬНЫМ ПРОГРЕССОМ */
+/* АНИМАЦИЯ ЗАГРУЗКИ */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -432,28 +432,18 @@ body {
     color: #ffaa66;
     margin: 10px 0;
 }
-.loading-progress-text {
-    font-size: 0.85rem;
-    color: #aaa;
-    margin-top: 8px;
-}
-.loading-details {
-    font-size: 0.7rem;
-    color: #777;
-    margin-top: 5px;
-}
 </style>
 </head>
 <body>
 
 <div class="header-plus">
-    <h2>🔥 MP3-ПЛЕЕР (1 ГБ)</h2>
+    <h2>🔥 ОНЛАЙН ПЛЕЕР</h2>
     <button class="plus-add-btn" id="openModalBtn">+</button>
 </div>
 
 <div id="playlist"></div>
 
-<!-- МОДАЛКА ДЛЯ ЗАГРУЗКИ ТРЕКА + ОБЛОЖКИ -->
+<!-- МОДАЛКА -->
 <div id="overlayForm" class="overlay-form">
     <div class="modal-card">
         <h3>📀 ЗАГРУЗИТЬ ТРЕК</h3>
@@ -468,7 +458,7 @@ body {
             <div class="char-counter"><span id="artistCount">0</span>/50</div>
         </div>
         <div class="input-group">
-            <label>🎵 MP3 ФАЙЛ (до 100 МБ, только .mp3)</label>
+            <label>🎵 MP3 ФАЙЛ (до 50 МБ, только .mp3)</label>
             <input type="file" id="mp3File" accept=".mp3" style="display:none">
             <div class="file-label" id="mp3Label">📂 ВЫБРАТЬ MP3</div>
             <div class="file-info" id="mp3FileName">Файл не выбран</div>
@@ -489,17 +479,16 @@ body {
     </div>
 </div>
 
-<!-- ОВЕРЛЕЙ ЗАГРУЗКИ С РЕАЛЬНЫМ ПРОГРЕССОМ -->
+<!-- ЗАГРУЗКА -->
 <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-card">
         <div class="spinner"></div>
-        <p>📀 Загрузка трека</p>
+        <p>☁️ Загрузка в облако</p>
         <div class="progress-bar-container">
             <div class="progress-bar-fill" id="progressBarFill"></div>
         </div>
         <div class="loading-percent" id="loadingPercent">0%</div>
         <div class="loading-progress-text" id="loadingStatus">Подготовка...</div>
-        <div class="loading-details" id="loadingDetails"></div>
     </div>
 </div>
 
@@ -527,222 +516,82 @@ body {
     <div>👤</div>
 </div>
 
-<script>
-// ============= INDEXEDDB ХРАНИЛИЩЕ (до 1 ГБ+) =============
-const DB_NAME = 'NeoMusicDB';
-const DB_VERSION = 2;
-const STORE_NAME = 'tracks';
+<!-- Firebase SDK -->
+<script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js",
+      "firebase/storage": "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js"
+    }
+  }
+</script>
 
-let db = null;
-let tracks = []; // кэш треков { id, title, artist, coverDataURL, mp3File, size }
+<script type="module">
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, query, orderBy, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
-// Открываем/создаём базу данных
-function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            db = request.result;
-            resolve(db);
-        };
-        
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                // Создаём хранилище с ключом id
-                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                store.createIndex('title', 'title', { unique: false });
-                store.createIndex('date', 'date', { unique: false });
-            }
-        };
-    });
-}
+// ============= ВАШ КОНФИГ FIREBASE =============
+const firebaseConfig = {
+  apiKey: "AIzaSyDBmazPKil5xsLBYteYftz_nmKnUdQojS0",
+  authDomain: "egfdgdfg-3504c.firebaseapp.com",
+  projectId: "egfdgdfg-3504c",
+  storageBucket: "egfdgdfg-3504c.firebasestorage.app",
+  messagingSenderId: "764542974854",
+  appId: "1:764542974854:web:1f2621cfa613e85e4f4a07",
+  measurementId: "G-8PTHXNW4C5"
+};
 
-// Загрузить все треки из IndexedDB
+// Инициализация
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+let tracks = []; // кэш треков
+let currentTrackIdx = 0;
+let currentAudioUrl = null;
+
+const audio = document.getElementById("audio");
+const playerDiv = document.getElementById("player");
+const playPauseBtn = document.getElementById("playPauseBtn");
+const progressBar = document.getElementById("progressBar");
+const progress = document.getElementById("progress");
+const currentTimeSpan = document.getElementById("currentTime");
+const durationSpan = document.getElementById("duration");
+const playerCoverImg = document.getElementById("playerCover");
+const titleSpan = document.getElementById("title");
+
+// ============= ЗАГРУЗКА ТРЕКОВ ИЗ FIREBASE =============
 async function loadAllTracks() {
-    if (!db) await openDatabase();
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-        
-        request.onsuccess = () => {
-            tracks = request.result || [];
-            // Сортируем по дате добавления (новые сверху)
-            tracks.sort((a, b) => (b.date || 0) - (a.date || 0));
-            resolve(tracks);
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Сохранить трек в IndexedDB
-async function saveTrackToDB(track) {
-    if (!db) await openDatabase();
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.put(track);
-        
-        request.onsuccess = () => resolve(track);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Удалить трек из IndexedDB
-async function deleteTrackFromDB(id) {
-    if (!db) await openDatabase();
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.delete(id);
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Получить общий размер всех треков
-async function getTotalStorageSize() {
-    if (!db) await openDatabase();
-    
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_NAME], 'readonly');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-        
-        request.onsuccess = () => {
-            const tracks = request.result || [];
-            let total = 0;
-            for (const track of tracks) {
-                if (track.size) total += track.size;
-                else if (track.mp3File && track.mp3File.size) total += track.mp3File.size;
-            }
-            resolve(total);
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
-
-// Функция показа загрузки
-function showLoadingWithProgress() {
     const loadingOverlay = document.getElementById("loadingOverlay");
-    const progressBarFill = document.getElementById("progressBarFill");
-    const loadingPercent = document.getElementById("loadingPercent");
-    
-    progressBarFill.style.width = "0%";
-    loadingPercent.textContent = "0%";
     loadingOverlay.classList.add("active");
-}
-
-function updateLoadingProgress(percent, status, details = "") {
-    const progressBarFill = document.getElementById("progressBarFill");
-    const loadingPercent = document.getElementById("loadingPercent");
-    const loadingStatus = document.getElementById("loadingStatus");
-    const loadingDetails = document.getElementById("loadingDetails");
+    document.getElementById("loadingStatus").textContent = "Загрузка плейлиста...";
     
-    const clampedPercent = Math.min(100, Math.max(0, percent));
-    progressBarFill.style.width = clampedPercent + "%";
-    loadingPercent.textContent = Math.floor(clampedPercent) + "%";
-    if (status) loadingStatus.textContent = status;
-    if (details) loadingDetails.textContent = details;
+    try {
+        const q = query(collection(db, "tracks"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        tracks = [];
+        querySnapshot.forEach((doc) => {
+            tracks.push({ id: doc.id, ...doc.data() });
+        });
+        
+        renderPlaylist();
+    } catch (error) {
+        console.error("Ошибка загрузки:", error);
+        showNotification("❌ Ошибка загрузки треков", "#ff6666");
+    } finally {
+        loadingOverlay.classList.remove("active");
+    }
 }
 
-function hideLoading() {
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.classList.remove("active");
-}
-
-// Конвертация файла в blob с прогрессом
-function fileToBlobWithProgress(file, onProgress) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-            const blob = new Blob([reader.result], { type: 'audio/mpeg' });
-            resolve(blob);
-        };
-        reader.onerror = (error) => reject(error);
-        
-        reader.onprogress = (event) => {
-            if (event.lengthComputable) {
-                const percentComplete = (event.loaded / event.total) * 100;
-                onProgress(percentComplete, event.loaded, event.total);
-            }
-        };
-        
-        reader.readAsArrayBuffer(file);
-    });
-}
-
-// Форматирование размера файла
+// Форматирование размера
 function formatFileSize(bytes) {
+    if (!bytes) return "0 Б";
     if (bytes < 1024) return bytes + ' Б';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
-    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
-    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' ГБ';
-}
-
-// Отрисовка списка треков
-function renderPlaylist() {
-    const container = document.getElementById("playlist");
-    container.innerHTML = "";
-    
-    if (tracks.length === 0) {
-        container.innerHTML = '<div class="empty-msg">🎧 Нет треков. Нажми + и загрузи MP3 (до 100 МБ)</div>';
-        return;
-    }
-    
-    for (let idx = 0; idx < tracks.length; idx++) {
-        const track = tracks[idx];
-        const div = document.createElement("div");
-        div.className = "song";
-        
-        const coverSrc = track.coverDataURL || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
-        
-        div.innerHTML = `
-            <img class="song-cover" src="${coverSrc}" alt="cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23ff7a00%22/%3E%3Ctext x=%2250%22 y=%2267%22 font-size=%2245%22 text-anchor=%22middle%22 fill=%22white%22%3E🎵%3C/text%3E%3C/svg%3E'">
-            <div class="song-info">
-                <div class="song-title">${escapeHtml(track.title)}</div>
-                <div class="song-artist">🎤 ${escapeHtml(track.artist || "Неизвестен")}</div>
-                <div class="song-size">📀 ${formatFileSize(track.size || 0)}</div>
-            </div>
-            <button class="delete-song" data-id="${track.id}" data-title="${escapeHtml(track.title)}">🗑️</button>
-        `;
-        
-        // Воспроизведение по клику на трек
-        const playArea = div.querySelector('.song-cover, .song-info');
-        if (playArea) {
-            playArea.addEventListener('click', (e) => {
-                e.stopPropagation();
-                loadTrackByIdx(idx);
-                playAudio();
-            });
-        }
-        
-        // Удаление трека
-        const deleteBtn = div.querySelector('.delete-song');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (confirm(`Удалить трек "${track.title}"?`)) {
-                    await deleteTrackFromDB(track.id);
-                    await loadAllTracks();
-                    renderPlaylist();
-                    if (currentTrackIdx === idx) {
-                        closePlayer();
-                    }
-                    showNotification(`🗑️ "${track.title}" удалён`, "#ff6666");
-                }
-            });
-        }
-        
-        container.appendChild(div);
-    }
+    return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
 }
 
 function escapeHtml(str) { 
@@ -771,24 +620,92 @@ function showNotification(message, color = "#00ff66") {
     notif.style.border = `1px solid ${color}`;
     notif.style.fontWeight = "bold";
     document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 2500);
+    setTimeout(() => notif.remove(), 3000);
 }
 
-// ---------- ПЛЕЕР ----------
-let currentTrackIdx = 0;
-const audio = document.getElementById("audio");
-const playerDiv = document.getElementById("player");
-const playPauseBtn = document.getElementById("playPauseBtn");
-const progressBar = document.getElementById("progressBar");
-const progress = document.getElementById("progress");
-const currentTimeSpan = document.getElementById("currentTime");
-const durationSpan = document.getElementById("duration");
-const playerCoverImg = document.getElementById("playerCover");
-const titleSpan = document.getElementById("title");
+// Отрисовка списка
+function renderPlaylist() {
+    const container = document.getElementById("playlist");
+    container.innerHTML = "";
+    
+    if (tracks.length === 0) {
+        container.innerHTML = '<div class="empty-msg">🎧 Нет треков. Нажми + и загрузи MP3 (до 50 МБ)</div>';
+        return;
+    }
+    
+    for (let idx = 0; idx < tracks.length; idx++) {
+        const track = tracks[idx];
+        const div = document.createElement("div");
+        div.className = "song";
+        
+        const coverSrc = track.coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
+        
+        div.innerHTML = `
+            <img class="song-cover" src="${coverSrc}" alt="cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23ff7a00%22/%3E%3Ctext x=%2250%22 y=%2267%22 font-size=%2245%22 text-anchor=%22middle%22 fill=%22white%22%3E🎵%3C/text%3E%3C/svg%3E'">
+            <div class="song-info">
+                <div class="song-title">${escapeHtml(track.title)}</div>
+                <div class="song-artist">🎤 ${escapeHtml(track.artist || "Неизвестен")}</div>
+                <div class="song-size">📀 ${formatFileSize(track.size)}</div>
+            </div>
+            <button class="delete-song" data-id="${track.id}" data-title="${escapeHtml(track.title)}">🗑️</button>
+        `;
+        
+        // Воспроизведение
+        const playArea = div.querySelector('.song-cover, .song-info');
+        if (playArea) {
+            playArea.addEventListener('click', (e) => {
+                e.stopPropagation();
+                loadTrackByIdx(idx);
+                playAudio();
+            });
+        }
+        
+        // Удаление
+        const deleteBtn = div.querySelector('.delete-song');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Удалить трек "${track.title}"?`)) {
+                    await deleteTrackFromFirebase(track);
+                }
+            });
+        }
+        
+        container.appendChild(div);
+    }
+}
 
-// Создаём URL для Blob
-let currentAudioUrl = null;
+// Удаление трека из Firebase
+async function deleteTrackFromFirebase(track) {
+    try {
+        // Удаляем MP3 из Storage
+        const mp3Ref = ref(storage, track.mp3Path);
+        await deleteObject(mp3Ref);
+        
+        // Удаляем обложку если есть
+        if (track.coverPath) {
+            const coverRef = ref(storage, track.coverPath);
+            await deleteObject(coverRef);
+        }
+        
+        // Удаляем документ из Firestore
+        await deleteDoc(doc(db, "tracks", track.id));
+        
+        // Обновляем список
+        await loadAllTracks();
+        
+        if (currentTrackIdx >= 0 && tracks[currentTrackIdx]?.id === track.id) {
+            closePlayer();
+        }
+        
+        showNotification(`🗑️ "${track.title}" удалён`, "#ff6666");
+    } catch (error) {
+        console.error("Ошибка удаления:", error);
+        showNotification("❌ Ошибка удаления", "#ff6666");
+    }
+}
 
+// ============= ПЛЕЕР =============
 function revokeCurrentUrl() {
     if (currentAudioUrl) {
         URL.revokeObjectURL(currentAudioUrl);
@@ -803,22 +720,13 @@ async function loadTrackByIdx(index) {
     currentTrackIdx = index;
     const track = tracks[currentTrackIdx];
     
-    // Останавливаем текущее воспроизведение
     audio.pause();
     revokeCurrentUrl();
     
     titleSpan.innerText = `${track.title || "Трек"} · ${track.artist || "?"}`;
-    const coverImg = track.coverDataURL || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎧%3C/text%3E%3C/svg%3E";
-    playerCoverImg.src = coverImg;
+    playerCoverImg.src = track.coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎧%3C/text%3E%3C/svg%3E";
     
-    // Создаём URL из Blob
-    if (track.mp3File && track.mp3File instanceof Blob) {
-        currentAudioUrl = URL.createObjectURL(track.mp3File);
-        audio.src = currentAudioUrl;
-    } else {
-        audio.src = "";
-    }
-    
+    audio.src = track.mp3Url;
     playerDiv.classList.add("show");
     updatePlayPauseUI();
     audio.load();
@@ -887,7 +795,145 @@ function formatTime(sec) {
     return m + ":" + s; 
 }
 
-// ---------- МОДАЛКА ЗАГРУЗКИ ----------
+// ============= ЗАГРУЗКА ТРЕКА В FIREBASE =============
+let selectedMp3File = null;
+let selectedCoverFile = null;
+
+function updateLoadingProgress(percent, status) {
+    const progressBarFill = document.getElementById("progressBarFill");
+    const loadingPercent = document.getElementById("loadingPercent");
+    const loadingStatus = document.getElementById("loadingStatus");
+    
+    const clampedPercent = Math.min(100, Math.max(0, percent));
+    progressBarFill.style.width = clampedPercent + "%";
+    loadingPercent.textContent = Math.floor(clampedPercent) + "%";
+    if (status) loadingStatus.textContent = status;
+}
+
+function showLoading() {
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    loadingOverlay.classList.add("active");
+    updateLoadingProgress(0, "Подготовка...");
+}
+
+function hideLoading() {
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    loadingOverlay.classList.remove("active");
+}
+
+async function uploadTrackToFirebase() {
+    if (!selectedMp3File) { 
+        alert("❌ Выберите MP3 файл"); 
+        return false; 
+    }
+    
+    let titleVal = document.getElementById("trackTitle").value.trim();
+    if(!titleVal) { alert("Укажите название трека"); return false; }
+    if(titleVal.length > 100) titleVal = titleVal.slice(0,100);
+    
+    let artistVal = document.getElementById("trackArtist").value.trim();
+    if(artistVal.length > 50) artistVal = artistVal.slice(0,50);
+    if(!artistVal) artistVal = "Неизвестный исполнитель";
+    
+    if (selectedMp3File.size > 50 * 1024 * 1024) {
+        alert("❌ Файл превышает 50 МБ!");
+        return false;
+    }
+    
+    showLoading();
+    
+    try {
+        const trackId = Date.now().toString() + "_" + Math.random().toString(36).substr(2, 6);
+        
+        // Загружаем MP3
+        updateLoadingProgress(5, "Загрузка MP3 в облако...");
+        const mp3Path = `mp3/${trackId}.mp3`;
+        const mp3Ref = ref(storage, mp3Path);
+        
+        const mp3UploadTask = uploadBytesResumable(mp3Ref, selectedMp3File);
+        
+        const mp3Url = await new Promise((resolve, reject) => {
+            mp3UploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 80;
+                    updateLoadingProgress(5 + progress, "Загрузка MP3...");
+                },
+                reject,
+                async () => {
+                    const url = await getDownloadURL(mp3UploadTask.snapshot.ref);
+                    resolve(url);
+                }
+            );
+        });
+        
+        // Загружаем обложку если есть
+        let coverUrl = null;
+        let coverPath = null;
+        
+        if (selectedCoverFile) {
+            updateLoadingProgress(85, "Загрузка обложки...");
+            coverPath = `covers/${trackId}.jpg`;
+            const coverRef = ref(storage, coverPath);
+            const coverUploadTask = uploadBytesResumable(coverRef, selectedCoverFile);
+            
+            coverUrl = await new Promise((resolve, reject) => {
+                coverUploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = 85 + (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
+                        updateLoadingProgress(progress, "Загрузка обложки...");
+                    },
+                    reject,
+                    async () => {
+                        const url = await getDownloadURL(coverUploadTask.snapshot.ref);
+                        resolve(url);
+                    }
+                );
+            });
+        }
+        
+        // Сохраняем в Firestore
+        updateLoadingProgress(95, "Сохранение информации...");
+        
+        await addDoc(collection(db, "tracks"), {
+            title: titleVal,
+            artist: artistVal,
+            mp3Url: mp3Url,
+            mp3Path: mp3Path,
+            coverUrl: coverUrl,
+            coverPath: coverPath,
+            size: selectedMp3File.size,
+            date: new Date().toISOString()
+        });
+        
+        updateLoadingProgress(100, "Готово!");
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        hideLoading();
+        await loadAllTracks();
+        
+        // Сброс формы
+        document.getElementById("trackTitle").value = "";
+        document.getElementById("trackArtist").value = "";
+        selectedMp3File = null;
+        selectedCoverFile = null;
+        document.getElementById("mp3FileName").innerText = "Файл не выбран";
+        document.getElementById("coverPreviewArea").style.display = "none";
+        document.getElementById("mp3File").value = "";
+        document.getElementById("coverFile").value = "";
+        
+        showNotification(`✅ "${titleVal}" добавлен в облако!`, "#aaffaa");
+        closeModal();
+        
+        return true;
+    } catch (error) {
+        hideLoading();
+        console.error("Ошибка:", error);
+        alert("Ошибка загрузки: " + error.message);
+        return false;
+    }
+}
+
+// ============= МОДАЛЬНОЕ ОКНО =============
 const overlay = document.getElementById("overlayForm");
 const openBtn = document.getElementById("openModalBtn");
 const cancelBtn = document.getElementById("cancelModalBtn");
@@ -902,9 +948,6 @@ const coverPreviewArea = document.getElementById("coverPreviewArea");
 const coverPreviewImg = document.getElementById("coverPreviewImg");
 const coverNameSpan = document.getElementById("coverName");
 
-let selectedMp3File = null;
-let selectedCoverBase64 = null;
-
 function resetModal() {
     titleInput.value = "";
     artistInput.value = "";
@@ -913,7 +956,7 @@ function resetModal() {
     mp3FileInput.value = "";
     coverFileInput.value = "";
     selectedMp3File = null;
-    selectedCoverBase64 = null;
+    selectedCoverFile = null;
     mp3FileNameSpan.innerText = "Файл не выбран";
     coverPreviewArea.style.display = "none";
     coverPreviewImg.src = "";
@@ -932,5 +975,60 @@ document.getElementById("coverLabel").onclick = () => coverFileInput.click();
 mp3FileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    if(file.size > 100 * 1024 * 1024) { 
-        alert("❌ MP3 превышает
+    if(file.size > 50 * 1024 * 1024) { 
+        alert("❌ MP3 превышает 50 МБ!"); 
+        mp3FileInput.value = ""; 
+        return; 
+    }
+    if(!file.type.includes("mp3") && !file.name.endsWith(".mp3")) { 
+        alert("❌ Только MP3 файлы"); 
+        mp3FileInput.value = ""; 
+        return; 
+    }
+    selectedMp3File = file;
+    mp3FileNameSpan.innerText = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} МБ)`;
+});
+
+coverFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith("image/")) { 
+        alert("Только изображения (jpg/png)"); 
+        coverFileInput.value = ""; 
+        return; 
+    }
+    selectedCoverFile = file;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        coverPreviewImg.src = ev.target.result;
+        coverPreviewArea.style.display = "flex";
+        coverNameSpan.innerText = file.name;
+    };
+    reader.readAsDataURL(file);
+});
+
+submitBtn.onclick = async () => {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = "0.6";
+    await uploadTrackToFirebase();
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = "1";
+};
+
+function openModal() { resetModal(); overlay.classList.add("active"); }
+function closeModal() { overlay.classList.remove("active"); }
+openBtn.onclick = openModal;
+cancelBtn.onclick = closeModal;
+overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
+
+// Кнопки плеера
+document.getElementById("prevBtn").onclick = prevTrack;
+document.getElementById("nextBtn").onclick = nextTrack;
+playPauseBtn.onclick = togglePlay;
+document.getElementById("closePlayerBtn").onclick = closePlayer;
+
+// ЗАПУСК
+loadAllTracks();
+</script>
+</body>
+</html>
