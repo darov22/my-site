@@ -334,7 +334,7 @@ body {
 }
 .navbar div { font-size: 1.7rem; opacity: 0.7; }
 
-/* АНИМАЦИЯ ЗАГРУЗКИ */
+/* АНИМАЦИЯ ЗАГРУЗКИ С РЕАЛЬНЫМ ПРОГРЕССОМ */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -362,6 +362,7 @@ body {
     border-radius: 60px;
     border: 1px solid #ff7a00;
     box-shadow: 0 0 40px rgba(255,122,0,0.3);
+    min-width: 300px;
 }
 .spinner {
     width: 60px;
@@ -381,10 +382,36 @@ body {
     font-size: 1rem;
     margin-top: 10px;
 }
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #2a2a2a;
+    border-radius: 10px;
+    margin: 20px 0 12px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff7a00, #ffbc4a);
+    border-radius: 10px;
+    transition: width 0.1s linear;
+}
+.loading-percent {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ffaa66;
+    margin: 10px 0;
+}
 .loading-progress-text {
     font-size: 0.85rem;
     color: #aaa;
     margin-top: 8px;
+}
+.loading-details {
+    font-size: 0.7rem;
+    color: #777;
+    margin-top: 5px;
 }
 </style>
 </head>
@@ -433,12 +460,17 @@ body {
     </div>
 </div>
 
-<!-- ОВЕРЛЕЙ ЗАГРУЗКИ -->
+<!-- ОВЕРЛЕЙ ЗАГРУЗКИ С РЕАЛЬНЫМ ПРОГРЕССОМ -->
 <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-card">
         <div class="spinner"></div>
-        <p>📀 Загрузка трека...</p>
-        <div class="loading-progress-text" id="loadingStatus">Подготовка файла...</div>
+        <p>📀 Загрузка трека</p>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+        <div class="loading-percent" id="loadingPercent">0%</div>
+        <div class="loading-progress-text" id="loadingStatus">Подготовка...</div>
+        <div class="loading-details" id="loadingDetails"></div>
     </div>
 </div>
 
@@ -462,7 +494,7 @@ body {
 <div class="navbar"><div>🏠</div><div>🔥</div><div>📁</div><div>👤</div></div>
 
 <script>
-// ---------- ХРАНИЛИЩЕ: все треки хранятся в localStorage (как "папка") ----------
+// ---------- ХРАНИЛИЩЕ: все треки хранятся в localStorage ----------
 let tracks = [];
 
 // Демо-треки
@@ -471,22 +503,58 @@ const DEFAULT_TRACKS = [
     { id: "demo2", title: "Лунный оранж", artist: "Solar Echo", mp3Data: "https://darov22.github.io/my-site/music/song2.mp3", coverData: null, isExternal: true }
 ];
 
-// Функция показа загрузки
-function showLoading(message = "Подготовка файла...") {
+// Функция показа загрузки с реальным прогрессом
+function showLoadingWithProgress() {
     const loadingOverlay = document.getElementById("loadingOverlay");
+    const progressBarFill = document.getElementById("progressBarFill");
+    const loadingPercent = document.getElementById("loadingPercent");
     const loadingStatus = document.getElementById("loadingStatus");
-    loadingStatus.textContent = message;
+    const loadingDetails = document.getElementById("loadingDetails");
+    
+    progressBarFill.style.width = "0%";
+    loadingPercent.textContent = "0%";
+    loadingStatus.textContent = "Подготовка...";
+    loadingDetails.textContent = "";
     loadingOverlay.classList.add("active");
 }
 
-function updateLoadingMessage(message) {
+function updateLoadingProgress(percent, status, details = "") {
+    const progressBarFill = document.getElementById("progressBarFill");
+    const loadingPercent = document.getElementById("loadingPercent");
     const loadingStatus = document.getElementById("loadingStatus");
-    if (loadingStatus) loadingStatus.textContent = message;
+    const loadingDetails = document.getElementById("loadingDetails");
+    
+    progressBarFill.style.width = percent + "%";
+    loadingPercent.textContent = Math.floor(percent) + "%";
+    if (status) loadingStatus.textContent = status;
+    if (details) loadingDetails.textContent = details;
 }
 
 function hideLoading() {
     const loadingOverlay = document.getElementById("loadingOverlay");
     loadingOverlay.classList.remove("active");
+}
+
+// Функция конвертации файла в base64 с отслеживанием прогресса
+function fileToBase64WithProgress(file, onProgress) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        const fileSize = file.size;
+        let lastLoaded = 0;
+        
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+        
+        // Отслеживаем прогресс через onprogress
+        reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentComplete = (event.loaded / event.total) * 100;
+                onProgress(percentComplete, event.loaded, event.total);
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    });
 }
 
 // загрузить из localStorage
@@ -597,7 +665,7 @@ audio.addEventListener("ended", nextTrack);
 
 function formatTime(sec) { if(isNaN(sec) || sec===Infinity) return "0:00"; let m=Math.floor(sec/60), s=Math.floor(sec%60); if(s<10) s="0"+s; return m+":"+s; }
 
-// ---------- МОДАЛКА ЗАГРУЗКИ С ВИЗУАЛЬНЫМ ПРОГРЕССОМ ----------
+// ---------- МОДАЛКА ЗАГРУЗКИ С РЕАЛЬНЫМ ПРОГРЕССОМ ----------
 const overlay = document.getElementById("overlayForm");
 const openBtn = document.getElementById("openModalBtn");
 const cancelBtn = document.getElementById("cancelModalBtn");
@@ -614,7 +682,7 @@ const coverNameSpan = document.getElementById("coverName");
 
 let selectedMp3Base64 = null;
 let selectedCoverBase64 = null;
-let selectedMp3Name = "";
+let selectedMp3File = null;
 
 function resetModal() {
     titleInput.value = "";
@@ -625,7 +693,7 @@ function resetModal() {
     coverFileInput.value = "";
     selectedMp3Base64 = null;
     selectedCoverBase64 = null;
-    selectedMp3Name = "";
+    selectedMp3File = null;
     mp3FileNameSpan.innerText = "Файл не выбран";
     coverPreviewArea.style.display = "none";
     coverPreviewImg.src = "";
@@ -643,11 +711,8 @@ mp3FileInput.addEventListener("change", (e) => {
     if(!file) return;
     if(file.size > 15 * 1024 * 1024) { alert("❌ MP3 превышает 15 МБ!"); mp3FileInput.value=""; return; }
     if(!file.type.includes("mp3") && !file.name.endsWith(".mp3")) { alert("❌ Только MP3 файлы"); mp3FileInput.value=""; return; }
-    selectedMp3Name = file.name;
+    selectedMp3File = file;
     mp3FileNameSpan.innerText = `${file.name} (${(file.size/1024/1024).toFixed(2)} МБ)`;
-    const reader = new FileReader();
-    reader.onload = function(ev) { selectedMp3Base64 = ev.target.result; };
-    reader.readAsDataURL(file);
 });
 
 coverFileInput.addEventListener("change", (e) => {
@@ -664,71 +729,95 @@ coverFileInput.addEventListener("change", (e) => {
     reader.readAsDataURL(file);
 });
 
-// Функция загрузки трека с визуальным прогрессом
-async function processTrackWithLoading() {
+// Функция загрузки трека с реальным прогрессом
+async function processTrackWithRealProgress() {
     let titleVal = titleInput.value.trim();
     if(!titleVal) { alert("Укажите название трека"); return false; }
     if(titleVal.length>100) titleVal = titleVal.slice(0,100);
     let artistVal = artistInput.value.trim();
     if(artistVal.length>50) artistVal = artistVal.slice(0,50);
     if(!artistVal) artistVal = "Неизвестный исполнитель";
-    if(!selectedMp3Base64) { alert("❌ Загрузите MP3 файл (до 15 МБ)"); return false; }
+    if(!selectedMp3File) { alert("❌ Загрузите MP3 файл (до 15 МБ)"); return false; }
     
-    showLoading("⏳ Подготовка к сохранению...");
+    showLoadingWithProgress();
     
-    // Имитируем небольшую задержку для плавности UI
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    updateLoadingMessage("💾 Сохранение трека в библиотеку...");
-    
-    // Создаём новый трек
-    const newTrack = {
-        id: Date.now() + Math.random().toString(36),
-        title: titleVal,
-        artist: artistVal,
-        mp3Data: selectedMp3Base64,
-        coverData: selectedCoverBase64 || null,
-        isExternal: false
-    };
-    
-    await new Promise(resolve => setTimeout(resolve, 150));
-    
-    tracks.push(newTrack);
-    saveTracksToStorage();
-    
-    updateLoadingMessage("✅ Завершение...");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    hideLoading();
-    renderPlaylist();
-    closeModal();
-    resetModal();
-    
-    // Показываем уведомление об успехе
-    let notif = document.createElement("div");
-    notif.innerText = `✅ "${titleVal}" успешно добавлен! (${(selectedMp3Base64.length / 1024 / 1024).toFixed(1)} МБ)`;
-    notif.style.position = "fixed"; notif.style.bottom = "180px"; notif.style.left = "20px"; notif.style.right = "20px";
-    notif.style.backgroundColor = "#1a3a1a";
-    notif.style.color = "#aaffaa";
-    notif.style.padding = "12px";
-    notif.style.borderRadius = "40px";
-    notif.style.textAlign = "center";
-    notif.style.zIndex = "999";
-    notif.style.border = "1px solid #00ff66";
-    notif.style.fontWeight = "bold";
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 2500);
-    
-    return true;
+    try {
+        // Этап 1: Инициализация
+        updateLoadingProgress(0, "Инициализация...", `Файл: ${selectedMp3File.name}`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Этап 2: Конвертация MP3 в base64 с реальным прогрессом
+        updateLoadingProgress(2, "Конвертация MP3...", `Размер: ${(selectedMp3File.size / 1024 / 1024).toFixed(2)} МБ`);
+        
+        selectedMp3Base64 = await fileToBase64WithProgress(selectedMp3File, (percent, loaded, total) => {
+            // Реальный прогресс от 2% до 85% занимает конвертация
+            const adjustedPercent = 2 + (percent * 0.83);
+            const loadedMB = (loaded / 1024 / 1024).toFixed(2);
+            const totalMB = (total / 1024 / 1024).toFixed(2);
+            updateLoadingProgress(
+                adjustedPercent, 
+                "Конвертация MP3...", 
+                `Загружено: ${loadedMB} из ${totalMB} МБ (${Math.floor(percent)}%)`
+            );
+        });
+        
+        // Этап 3: Сохранение трека
+        updateLoadingProgress(88, "Сохранение в библиотеку...", "Создание записи...");
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        const newTrack = {
+            id: Date.now() + Math.random().toString(36),
+            title: titleVal,
+            artist: artistVal,
+            mp3Data: selectedMp3Base64,
+            coverData: selectedCoverBase64 || null,
+            isExternal: false
+        };
+        
+        updateLoadingProgress(94, "Обновление плейлиста...", "");
+        tracks.push(newTrack);
+        saveTracksToStorage();
+        
+        updateLoadingProgress(98, "Финальные штрихи...", "");
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        updateLoadingProgress(100, "Готово!", "Трек успешно добавлен");
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        hideLoading();
+        renderPlaylist();
+        closeModal();
+        resetModal();
+        
+        // Показываем уведомление об успехе
+        let notif = document.createElement("div");
+        notif.innerText = `✅ "${titleVal}" успешно добавлен! (${(selectedMp3Base64.length / 1024 / 1024).toFixed(1)} МБ)`;
+        notif.style.position = "fixed"; notif.style.bottom = "180px"; notif.style.left = "20px"; notif.style.right = "20px";
+        notif.style.backgroundColor = "#1a3a1a";
+        notif.style.color = "#aaffaa";
+        notif.style.padding = "12px";
+        notif.style.borderRadius = "40px";
+        notif.style.textAlign = "center";
+        notif.style.zIndex = "999";
+        notif.style.border = "1px solid #00ff66";
+        notif.style.fontWeight = "bold";
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 2500);
+        
+        return true;
+    } catch (error) {
+        hideLoading();
+        alert("Ошибка при загрузке файла: " + error.message);
+        return false;
+    }
 }
 
 submitBtn.onclick = async () => {
-    // Блокируем кнопку на время загрузки
     submitBtn.disabled = true;
     submitBtn.style.opacity = "0.6";
     submitBtn.style.cursor = "wait";
     
-    await processTrackWithLoading();
+    await processTrackWithRealProgress();
     
     submitBtn.disabled = false;
     submitBtn.style.opacity = "1";
