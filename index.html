@@ -20,7 +20,6 @@ body {
     overflow-x: hidden;
 }
 
-/* HEADER с плюсом */
 .header-plus {
     display: flex;
     align-items: center;
@@ -62,7 +61,6 @@ body {
 }
 .plus-add-btn:hover { transform: scale(1.02); background: #2a2a2a; border-color: #ff9a3c; }
 
-/* МОДАЛЬНОЕ ОКНО */
 .overlay-form {
     position: fixed;
     top: 0;
@@ -175,7 +173,6 @@ body {
 .btn-cancel { background: #2c2c2c; color: #ccc; }
 .btn-submit { background: linear-gradient(95deg, #ff7a00, #ffaa33); color: #111; }
 
-/* ПЛЕЙЛИСТ */
 #playlist {
     margin: 24px 20px 110px 20px;
     display: flex;
@@ -252,7 +249,6 @@ body {
     color: #777;
 }
 
-/* ПЛЕЕР ВНИЗУ */
 .player {
     position: fixed;
     bottom: 90px;
@@ -363,7 +359,6 @@ body {
 .navbar div { font-size: 1.7rem; opacity: 0.7; cursor: pointer; transition: 0.2s; }
 .navbar div:hover { opacity: 1; transform: scale(1.1); }
 
-/* АНИМАЦИЯ ЗАГРУЗКИ */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -443,7 +438,6 @@ body {
 
 <div id="playlist"></div>
 
-<!-- МОДАЛКА -->
 <div id="overlayForm" class="overlay-form">
     <div class="modal-card">
         <h3>📀 ЗАГРУЗИТЬ ТРЕК</h3>
@@ -479,7 +473,6 @@ body {
     </div>
 </div>
 
-<!-- ЗАГРУЗКА -->
 <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-card">
         <div class="spinner"></div>
@@ -516,7 +509,6 @@ body {
     <div>👤</div>
 </div>
 
-<!-- Firebase SDK -->
 <script type="importmap">
   {
     "imports": {
@@ -532,7 +524,6 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, query, orderBy, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
-// ============= ВАШ КОНФИГ FIREBASE =============
 const firebaseConfig = {
   apiKey: "AIzaSyDBmazPKil5xsLBYteYftz_nmKnUdQojS0",
   authDomain: "egfdgdfg-3504c.firebaseapp.com",
@@ -543,7 +534,6 @@ const firebaseConfig = {
   measurementId: "G-8PTHXNW4C5"
 };
 
-// Инициализация
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -562,7 +552,6 @@ const durationSpan = document.getElementById("duration");
 const playerCoverImg = document.getElementById("playerCover");
 const titleSpan = document.getElementById("title");
 
-// ============= ЗАГРУЗКА ТРЕКОВ ИЗ FIREBASE (БЕЗ ОВЕРЛЕЯ) =============
 async function loadAllTracks() {
     try {
         const q = query(collection(db, "tracks"), orderBy("date", "desc"));
@@ -689,7 +678,6 @@ async function deleteTrackFromFirebase(track) {
     }
 }
 
-// ============= ПЛЕЕР =============
 function revokeCurrentUrl() {
     if (currentAudioUrl) {
         URL.revokeObjectURL(currentAudioUrl);
@@ -779,7 +767,6 @@ function formatTime(sec) {
     return m + ":" + s; 
 }
 
-// ============= ЗАГРУЗКА ТРЕКА В FIREBASE =============
 let selectedMp3File = null;
 let selectedCoverFile = null;
 
@@ -837,10 +824,13 @@ async function uploadTrackToFirebase() {
         const mp3Url = await new Promise((resolve, reject) => {
             mp3UploadTask.on('state_changed',
                 (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 80;
-                    updateLoadingProgress(5 + progress, "Загрузка MP3...");
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 75;
+                    updateLoadingProgress(5 + progress, `Загрузка MP3... ${Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100)}%`);
                 },
-                reject,
+                (error) => {
+                    console.error("MP3 upload error:", error);
+                    reject(error);
+                },
                 async () => {
                     const url = await getDownloadURL(mp3UploadTask.snapshot.ref);
                     resolve(url);
@@ -852,7 +842,7 @@ async function uploadTrackToFirebase() {
         let coverPath = null;
         
         if (selectedCoverFile) {
-            updateLoadingProgress(85, "Загрузка обложки...");
+            updateLoadingProgress(80, "Загрузка обложки...");
             coverPath = `covers/${trackId}.jpg`;
             const coverRef = ref(storage, coverPath);
             const coverUploadTask = uploadBytesResumable(coverRef, selectedCoverFile);
@@ -860,8 +850,8 @@ async function uploadTrackToFirebase() {
             coverUrl = await new Promise((resolve, reject) => {
                 coverUploadTask.on('state_changed',
                     (snapshot) => {
-                        const progress = 85 + (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
-                        updateLoadingProgress(progress, "Загрузка обложки...");
+                        const progress = 80 + (snapshot.bytesTransferred / snapshot.totalBytes) * 10;
+                        updateLoadingProgress(progress, `Загрузка обложки... ${Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100)}%`);
                     },
                     reject,
                     async () => {
@@ -872,9 +862,9 @@ async function uploadTrackToFirebase() {
             });
         }
         
-        updateLoadingProgress(95, "Сохранение информации...");
+        updateLoadingProgress(92, "Сохранение информации о треке...");
         
-        await addDoc(collection(db, "tracks"), {
+        const trackData = {
             title: titleVal,
             artist: artistVal,
             mp3Url: mp3Url,
@@ -883,7 +873,11 @@ async function uploadTrackToFirebase() {
             coverPath: coverPath,
             size: selectedMp3File.size,
             date: new Date().toISOString()
-        });
+        };
+        
+        console.log("Сохраняем в Firestore:", trackData);
+        
+        await addDoc(collection(db, "tracks"), trackData);
         
         updateLoadingProgress(100, "Готово!");
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -893,28 +887,28 @@ async function uploadTrackToFirebase() {
         
         document.getElementById("trackTitle").value = "";
         document.getElementById("trackArtist").value = "";
+        document.getElementById("titleCount").innerText = "0";
+        document.getElementById("artistCount").innerText = "0";
         selectedMp3File = null;
         selectedCoverFile = null;
         document.getElementById("mp3FileName").innerText = "Файл не выбран";
         document.getElementById("coverPreviewArea").style.display = "none";
         document.getElementById("mp3File").value = "";
         document.getElementById("coverFile").value = "";
-        document.getElementById("titleCount").innerText = "0";
-        document.getElementById("artistCount").innerText = "0";
         
-        showNotification(`✅ "${titleVal}" добавлен в облако!`, "#aaffaa");
+        showNotification(`✅ "${titleVal}" - ${artistVal} добавлен в облако!`, "#aaffaa");
         closeModal();
         
         return true;
+        
     } catch (error) {
         hideLoading();
-        console.error("Ошибка:", error);
+        console.error("ОШИБКА:", error);
         alert("Ошибка загрузки: " + error.message);
         return false;
     }
 }
 
-// ============= МОДАЛЬНОЕ ОКНО =============
 const overlay = document.getElementById("overlayForm");
 const openBtn = document.getElementById("openModalBtn");
 const cancelBtn = document.getElementById("cancelModalBtn");
@@ -1007,7 +1001,6 @@ document.getElementById("nextBtn").onclick = nextTrack;
 playPauseBtn.onclick = togglePlay;
 document.getElementById("closePlayerBtn").onclick = closePlayer;
 
-// ЗАПУСК (без оверлея)
 loadAllTracks();
 </script>
 </body>
