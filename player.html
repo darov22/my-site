@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>NEO MUSIC | Плеер</title>
 <style>
+/* Все стили такие же как в предыдущей версии */
 * {
     margin: 0;
     padding: 0;
@@ -656,7 +657,6 @@ body {
     transform: scale(0.98);
 }
 
-/* Мини-форма создания плейлиста */
 .create-playlist-mini {
     position: fixed;
     bottom: 0;
@@ -817,19 +817,15 @@ body {
     </div>
 </div>
 
-<!-- Селектор плейлистов -->
 <div id="playlistSelector" class="playlist-selector">
     <div class="selector-header">
         <h4>📁 Добавить в плейлист</h4>
         <button class="close-selector" id="closeSelectorBtn">✖</button>
     </div>
     <div class="playlist-list" id="playlistList"></div>
-    <div class="create-new-playlist-btn" id="createNewPlaylistBtn">
-        ➕ Создать новый плейлист
-    </div>
+    <div class="create-new-playlist-btn" id="createNewPlaylistBtn">➕ Создать новый плейлист</div>
 </div>
 
-<!-- Мини-форма создания плейлиста -->
 <div id="createPlaylistMini" class="create-playlist-mini">
     <h4>✨ Создать плейлист</h4>
     <input type="text" id="newPlaylistName" maxlength="50" placeholder="Название плейлиста (макс 50)">
@@ -902,9 +898,8 @@ body {
 </div>
 
 <script type="module">
-// Импорты Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, query, orderBy, getDocs, addDoc, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
 
 const firebaseConfig = {
@@ -924,11 +919,10 @@ const storage = getStorage(app);
 let tracks = [];
 let currentTrackIdx = 0;
 let currentAudioUrl = null;
-let currentSelectedTrack = null; // Для добавления в плейлист
-
-// Загрузка плейлистов из localStorage
+let currentSelectedTrack = null;
 let userPlaylists = [];
 
+// Загрузка плейлистов из localStorage
 function loadPlaylistsFromLocal() {
     const stored = localStorage.getItem('neo_user_playlists');
     if (stored) {
@@ -948,7 +942,6 @@ function savePlaylistsToLocal() {
 function addTrackToPlaylist(playlistId, track) {
     const playlist = userPlaylists.find(p => p.id === playlistId);
     if (playlist) {
-        // Проверяем, нет ли уже такого трека
         const exists = playlist.tracks.some(t => t.id === track.id);
         if (!exists) {
             playlist.tracks.push(track);
@@ -979,7 +972,6 @@ function showNotification(message, color) {
     setTimeout(() => notif.remove(), 2500);
 }
 
-// Открытие селектора плейлистов
 function openPlaylistSelector(track) {
     currentSelectedTrack = track;
     loadPlaylistsFromLocal();
@@ -1021,7 +1013,6 @@ function closePlaylistSelector() {
     currentSelectedTrack = null;
 }
 
-// Создание нового плейлиста
 let selectedAvatarFile = null;
 
 function openCreatePlaylistMini() {
@@ -1076,14 +1067,13 @@ async function createNewPlaylist() {
     hideLoading();
     showNotification(`✅ Плейлист "${name}" создан!`, "#aaffaa");
     
-    // Если есть выбранный трек, добавляем его в новый плейлист
     if (currentSelectedTrack) {
         addTrackToPlaylist(newPlaylist.id, currentSelectedTrack);
         closePlaylistSelector();
     }
 }
 
-// Стандартные функции плеера
+// Аудио плеер
 const audio = document.getElementById("audio");
 const playerDiv = document.getElementById("player");
 const playPauseBtn = document.getElementById("playPauseBtn");
@@ -1109,16 +1099,22 @@ const fsCenterImg = document.getElementById("fsCenterImg");
 
 // Навигация
 function goToPlaylistsPage() {
+    // Сохраняем текущее состояние воспроизведения перед уходом
+    if (audio && !audio.paused) {
+        const state = {
+            track: tracks[currentTrackIdx],
+            currentTime: audio.currentTime,
+            isPlaying: true
+        };
+        sessionStorage.setItem('playerPlaybackState', JSON.stringify(state));
+    }
     window.location.href = 'playlists.html';
 }
 
 function goToHomePage() {
+    // Обновляем список треков
     loadAllTracks();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if(playerDiv.classList.contains('show')) {
-        playerDiv.classList.remove('show');
-        audio.pause();
-    }
 }
 
 document.querySelector('.nav-home')?.addEventListener('click', goToHomePage);
@@ -1235,6 +1231,26 @@ async function loadAllTracks() {
             tracks.push({ id: doc.id, ...doc.data() }); 
         });
         renderPlaylist();
+        
+        // Проверяем, есть ли сохраненное состояние воспроизведения
+        const savedState = sessionStorage.getItem('playerPlaybackState');
+        if (savedState) {
+            try {
+                const state = JSON.parse(savedState);
+                if (state.track) {
+                    const trackIndex = tracks.findIndex(t => t.id === state.track.id);
+                    if (trackIndex !== -1) {
+                        currentTrackIdx = trackIndex;
+                        loadTrackByIdx(currentTrackIdx);
+                        audio.currentTime = state.currentTime || 0;
+                        if (state.isPlaying) {
+                            audio.play().catch(e => console.log(e));
+                        }
+                    }
+                }
+                sessionStorage.removeItem('playerPlaybackState');
+            } catch(e) {}
+        }
     } catch (error) { 
         console.error(error); 
     }
@@ -1292,7 +1308,7 @@ function renderPlaylist() {
     }
 }
 
-// Загрузка треков в Firebase (оставляем как было)
+// Загрузка треков
 let selectedMp3File = null, selectedCoverFile = null;
 
 function showLoading() { document.getElementById("loadingOverlay").classList.add("active"); }
