@@ -247,11 +247,16 @@ body {
     transform: translateY(150px);
     opacity: 0;
     transition: 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    z-index: 50;
+    z-index: 45;
     border-top: 1px solid rgba(255, 122, 0, 0.7);
     box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+    pointer-events: none;
 }
-.player.show { transform: translateY(0); opacity: 1; }
+.player.show { 
+    transform: translateY(0); 
+    opacity: 1;
+    pointer-events: auto;
+}
 .close-btn {
     position: absolute;
     top: 12px;
@@ -511,11 +516,28 @@ body {
     align-items: center;
     box-shadow: 0 0 20px rgba(255,122,0,0.3);
     border: 1px solid rgba(255,122,0,0.5);
-    z-index: 40;
+    z-index: 100;
+    pointer-events: auto;
 }
-.navbar div { font-size: 1.7rem; opacity: 0.7; cursor: pointer; transition: 0.2s; }
-.navbar div:active { opacity: 1; transform: scale(1.1); }
-.navbar div.active { opacity: 1; text-shadow: 0 0 10px #ff7a00; }
+.navbar div { 
+    font-size: 1.7rem; 
+    opacity: 0.7; 
+    cursor: pointer; 
+    transition: 0.2s;
+    padding: 10px 20px;
+    border-radius: 40px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.navbar div:active { 
+    opacity: 1; 
+    transform: scale(1.1);
+    background: rgba(255, 122, 0, 0.2);
+}
+.navbar div.active { 
+    opacity: 1; 
+    text-shadow: 0 0 10px #ff7a00;
+}
 
 .loading-overlay {
     position: fixed;
@@ -734,6 +756,20 @@ let tracks = [];
 let currentTrackIdx = 0;
 let currentAudioUrl = null;
 
+// Проверяем, есть ли трек для воспроизведения из плейлиста
+const playTrackOnHome = sessionStorage.getItem('playTrackOnHome');
+if (playTrackOnHome) {
+    try {
+        const trackToPlay = JSON.parse(playTrackOnHome);
+        tracks = [trackToPlay];
+        currentTrackIdx = 0;
+        sessionStorage.removeItem('playTrackOnHome');
+        console.log("✅ Загружен трек из плейлиста");
+    } catch(e) {
+        console.error("Ошибка парсинга трека:", e);
+    }
+}
+
 // Пытаемся получить треки из sessionStorage (от splash-экрана)
 const storedTracks = sessionStorage.getItem('neoMusicTracks');
 if (storedTracks && sessionStorage.getItem('neoMusicLoaded') === 'true') {
@@ -778,11 +814,10 @@ function goToPlaylistsPage() {
     window.location.href = 'playlists.html';
 }
 
-// Переход на главную (остаемся на этой странице, но обновляем контент)
+// Переход на главную (обновляем страницу)
 function goToHomePage() {
-    // Если мы уже на главной, просто перезагружаем треки
+    // Если уже на главной, просто перезагружаем треки
     loadAllTracks();
-    // Прокручиваем наверх
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Закрываем плеер если открыт
     if(playerDiv.classList.contains('show')) {
@@ -791,15 +826,29 @@ function goToHomePage() {
     }
 }
 
-// Обработчики навигации
-document.querySelector('.nav-home').addEventListener('click', goToHomePage);
-document.querySelector('.nav-playlists').addEventListener('click', goToPlaylistsPage);
+// Обработчики навигации с защитой от всплытия
+const navHome = document.querySelector('.nav-home');
+const navPlaylists = document.querySelector('.nav-playlists');
+
+if (navHome) {
+    navHome.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToHomePage();
+    });
+}
+
+if (navPlaylists) {
+    navPlaylists.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToPlaylistsPage();
+    });
+}
 
 // Активная кнопка навигации (на главной активен домик)
-document.querySelector('.nav-home').classList.add('active');
+if (navHome) navHome.classList.add('active');
 
-// Универсальная функция для обработки клика по прогресс-бару (для обоих режимов)
-function setupProgressSeek(progressElement, setCurrentTimeCallback) {
+// Универсальная функция для обработки клика по прогресс-бару
+function setupProgressSeek(progressElement) {
     if (!progressElement) return;
     const handleSeek = (e) => {
         if (!audio.duration || isNaN(audio.duration)) return;
@@ -810,7 +859,6 @@ function setupProgressSeek(progressElement, setCurrentTimeCallback) {
         const percent = clickX / rect.width;
         const newTime = percent * audio.duration;
         audio.currentTime = newTime;
-        if (setCurrentTimeCallback) setCurrentTimeCallback(newTime);
     };
     progressElement.addEventListener('click', handleSeek);
     progressElement.addEventListener('touchstart', (e) => {
@@ -873,8 +921,8 @@ document.getElementById("closePlayerBtn").onclick = () => { playerDiv.classList.
 document.getElementById("expandFullscreenBtn").onclick = showFullscreen;
 fsBackBtn.onclick = hideFullscreen;
 
-setupProgressSeek(progress, null);
-setupProgressSeek(fsProgress, null);
+setupProgressSeek(progress);
+setupProgressSeek(fsProgress);
 
 audio.addEventListener("timeupdate", () => { syncAllProgress(); if(fsPlayer.classList.contains("active")) updateFsProgress(); });
 audio.addEventListener("loadedmetadata", () => { if(audio.duration) { durationSpan.innerText = formatTime(audio.duration); fsDurationSpan.innerText = formatTime(audio.duration); } });
@@ -973,7 +1021,17 @@ function openModal() { resetModal(); overlay.classList.add("active"); }
 function closeModal() { overlay.classList.remove("active"); }
 openBtn.onclick = openModal; cancelBtn.onclick = closeModal; overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
 
-loadAllTracks();
+// Если есть трек для воспроизведения из плейлиста, запускаем его
+if (playTrackOnHome) {
+    setTimeout(() => {
+        if (tracks.length > 0) {
+            loadTrackByIdx(0);
+            audio.play().catch(e => console.log(e));
+        }
+    }, 500);
+} else {
+    loadAllTracks();
+}
 </script>
 </body>
 </html>
