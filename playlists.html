@@ -558,7 +558,7 @@ let currentPlayingTrackIndex = 0;
 let currentPlayingTracks = [];
 let currentPlayingPlaylistId = null;
 
-// Навигация
+// Навигация - ПЕРЕДАЕМ СОСТОЯНИЕ
 function goToHomePage() {
     if (playlistAudio && currentPlayingTracks.length > 0) {
         const state = {
@@ -583,26 +583,19 @@ function loadPlaylists() {
     if (stored) {
         try {
             userPlaylists = JSON.parse(stored);
-            console.log("Загружено плейлистов:", userPlaylists.length);
-            // Проверяем, что у каждого плейлиста есть avatarUrl
-            userPlaylists.forEach(playlist => {
-                if (!playlist.avatarUrl) {
-                    playlist.avatarUrl = null;
-                }
-                console.log(`Плейлист "${playlist.name}" имеет аватарку:`, playlist.avatarUrl ? "да (base64)" : "нет");
-            });
         } catch(e) { 
-            console.error("Ошибка загрузки:", e);
             userPlaylists = []; 
         }
     }
     if (!userPlaylists) userPlaylists = [];
     renderPlaylists();
+    
+    // ВОССТАНАВЛИВАЕМ СОСТОЯНИЕ ПЛЕЙЛИСТА ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+    restorePlaybackState();
 }
 
 function savePlaylists() {
     localStorage.setItem('neo_user_playlists', JSON.stringify(userPlaylists));
-    console.log("Плейлисты сохранены, всего:", userPlaylists.length);
 }
 
 function getDefaultAvatar() {
@@ -621,13 +614,12 @@ function renderPlaylists() {
     for (const playlist of userPlaylists) {
         const div = document.createElement("div");
         div.className = "playlist-card";
-        // Используем avatarUrl если есть и это не пустая строка
         let avatarUrl = getDefaultAvatar();
         if (playlist.avatarUrl && playlist.avatarUrl !== 'null' && playlist.avatarUrl !== 'undefined' && playlist.avatarUrl.length > 100) {
             avatarUrl = playlist.avatarUrl;
         }
         div.innerHTML = `
-            <img class="playlist-cover" src="${avatarUrl}" alt="avatar" onerror="this.src='${getDefaultAvatar()}'; console.log('Ошибка загрузки аватарки для ${playlist.name}')">
+            <img class="playlist-cover" src="${avatarUrl}" alt="avatar" onerror="this.src='${getDefaultAvatar()}'">
             <div class="playlist-info">
                 <div class="playlist-name">${escapeHtml(playlist.name)}</div>
                 <div class="playlist-count">${playlist.tracks.length} ${getTrackWord(playlist.tracks.length)}</div>
@@ -691,7 +683,6 @@ function hideLoading() {
 
 let selectedAvatarBase64 = null;
 
-// Конвертация файла в base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -712,7 +703,7 @@ async function createPlaylist(name, avatarBase64) {
     const newPlaylist = {
         id: Date.now().toString(),
         name: name.trim(),
-        avatarUrl: avatarBase64 || null,  // Сохраняем null если нет аватарки
+        avatarUrl: avatarBase64 || null,
         tracks: [],
         createdAt: new Date().toISOString()
     };
@@ -722,7 +713,6 @@ async function createPlaylist(name, avatarBase64) {
     renderPlaylists();
     hideLoading();
     showNotification(`✅ Плейлист "${name}" создан!`, "#aaffaa");
-    console.log("Создан плейлист с аватаркой:", avatarBase64 ? "да (длина " + avatarBase64.length + ")" : "нет");
     return true;
 }
 
@@ -836,7 +826,7 @@ function deleteCurrentPlaylist() {
     showNotification("✅ Плейлист удален", "#aaffaa");
 }
 
-// ВОСПРОИЗВЕДЕНИЕ ПЛЕЙЛИСТА
+// ========== ВОСПРОИЗВЕДЕНИЕ ПЛЕЙЛИСТА ==========
 function initAudio() {
     if (!playlistAudio) {
         playlistAudio = new Audio();
@@ -929,6 +919,46 @@ function stopPlaylist() {
     hideNowPlayingBar();
 }
 
+// ========== ВОССТАНОВЛЕНИЕ СОСТОЯНИЯ ПРИ ЗАГРУЗКЕ ==========
+function restorePlaybackState() {
+    const savedState = sessionStorage.getItem('globalPlaybackState');
+    if (savedState) {
+        try {
+            const state = JSON.parse(savedState);
+            console.log("Восстанавливаем состояние:", state);
+            
+            if (state.type === 'playlist' && state.tracks && state.tracks.length > 0) {
+                // Восстанавливаем плейлист
+                currentPlayingPlaylistId = state.playlistId;
+                currentPlayingTracks = state.tracks;
+                currentPlayingTrackIndex = state.trackIndex;
+                
+                initAudio();
+                const track = currentPlayingTracks[currentPlayingTrackIndex];
+                if (track) {
+                    playlistAudio.src = track.mp3Url;
+                    playlistAudio.currentTime = state.currentTime || 0;
+                    if (state.isPlaying) {
+                        playlistAudio.play().catch(e => console.log(e));
+                        isPlayingPlaylist = true;
+                        document.getElementById('npPlayPause').innerHTML = '⏸';
+                    } else {
+                        isPlayingPlaylist = false;
+                        document.getElementById('npPlayPause').innerHTML = '▶';
+                    }
+                    updateNowPlayingInfo(track);
+                    showNowPlayingBar();
+                    console.log("Плейлист восстановлен, трек:", track.title);
+                }
+            }
+            // Очищаем состояние после восстановления, чтобы не восстанавливать дважды
+            sessionStorage.removeItem('globalPlaybackState');
+        } catch(e) {
+            console.error("Ошибка восстановления состояния:", e);
+        }
+    }
+}
+
 // Модальное окно
 const createModal = document.getElementById("createModal");
 const createBtn = document.getElementById("createPlaylistBtn");
@@ -964,10 +994,8 @@ avatarFileInput.addEventListener("change", async (e) => {
     if (file && file.type.startsWith("image/")) {
         showLoading();
         try {
-            // Конвертируем файл в base64 для локального хранения
             selectedAvatarBase64 = await fileToBase64(file);
             avatarPreview.src = selectedAvatarBase64;
-            console.log("Аватарка загружена, размер base64:", selectedAvatarBase64.length);
         } catch(err) {
             console.error("Ошибка конвертации:", err);
             showNotification("❌ Ошибка загрузки изображения", "#ff8888");
@@ -998,6 +1026,7 @@ playPlaylistBtn.onclick = () => {
 document.getElementById('npPlayPause').onclick = togglePlayPausePlaylist;
 document.getElementById('npClose').onclick = stopPlaylist;
 
+// Запуск
 loadPlaylists();
 </script>
 </body>
