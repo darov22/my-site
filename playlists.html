@@ -294,6 +294,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    margin-bottom: 100px;
 }
 .detail-song {
     background: rgba(22, 22, 22, 0.9);
@@ -410,6 +411,7 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* Панель "Сейчас играет" - скрыта по умолчанию */
 .now-playing-bar {
     position: fixed;
     bottom: 90px;
@@ -426,9 +428,13 @@ body {
     border: 1px solid rgba(255, 122, 0, 0.5);
     transform: translateY(100px);
     transition: 0.3s;
+    opacity: 0;
+    visibility: hidden;
 }
 .now-playing-bar.show {
     transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
 }
 .now-playing-cover {
     width: 44px;
@@ -515,7 +521,7 @@ body {
     <div class="songs-list" id="songsList"></div>
 </div>
 
-<!-- Плавающая панель сейчас играет -->
+<!-- Плавающая панель сейчас играет - скрыта по умолчанию -->
 <div id="nowPlayingBar" class="now-playing-bar">
     <img id="npCover" class="now-playing-cover" src="" alt="cover">
     <div class="now-playing-info">
@@ -552,12 +558,18 @@ const storage = getStorage(app);
 
 let userPlaylists = [];
 let currentPlaylistId = null;
-let audio = null;
-let currentTrackIndex = 0;
-let currentPlaylistTracks = [];
+let playlistAudio = null;
+let isPlayingPlaylist = false;
+let currentPlayingTrackIndex = 0;
+let currentPlayingTracks = [];
 
 // Навигация
 function goToHomePage() {
+    // Останавливаем воспроизведение перед уходом
+    if (playlistAudio) {
+        playlistAudio.pause();
+        playlistAudio = null;
+    }
     window.location.href = 'player.html';
 }
 
@@ -697,6 +709,9 @@ async function createPlaylist(name, avatarFile) {
 
 // Открытие деталей плейлиста
 function openPlaylistDetail(playlistId) {
+    // Останавливаем текущее воспроизведение если оно было
+    stopPlaylist();
+    
     currentPlaylistId = playlistId;
     const playlist = userPlaylists.find(p => p.id === playlistId);
     if (!playlist) return;
@@ -745,6 +760,13 @@ function renderSongsInPlaylist(tracks) {
 }
 
 function playSingleTrack(track) {
+    // Останавливаем воспроизведение плейлиста если было
+    if (playlistAudio) {
+        playlistAudio.pause();
+        playlistAudio = null;
+    }
+    isPlayingPlaylist = false;
+    hideNowPlayingBar();
     sessionStorage.setItem('playTrackOnHome', JSON.stringify(track));
     window.location.href = 'player.html';
 }
@@ -758,12 +780,25 @@ function removeTrackFromPlaylist(trackId) {
         document.getElementById("detailCount").innerText = `${playlist.tracks.length} ${getTrackWord(playlist.tracks.length)}`;
         renderPlaylists();
         showNotification("🗑 Трек удален из плейлиста", "#ffaa66");
+        
+        // Если удалили трек из текущего воспроизводимого плейлиста, обновляем текущие треки
+        if (currentPlayingTracks.length > 0 && currentPlaylistId === playlist.id) {
+            currentPlayingTracks = playlist.tracks;
+            if (currentPlayingTrackIndex >= currentPlayingTracks.length) {
+                stopPlaylist();
+            }
+        }
     }
 }
 
 function deleteCurrentPlaylist() {
     if (!currentPlaylistId) return;
     if (!confirm("Вы уверены, что хотите удалить этот плейлист?")) return;
+    
+    // Останавливаем воспроизведение если удаляем текущий плейлист
+    if (currentPlaylistId === currentPlayingPlaylistId) {
+        stopPlaylist();
+    }
     
     userPlaylists = userPlaylists.filter(p => p.id !== currentPlaylistId);
     savePlaylists();
@@ -773,25 +808,13 @@ function deleteCurrentPlaylist() {
     showNotification("✅ Плейлист удален", "#aaffaa");
 }
 
-// ========== ВОСПРОИЗВЕДЕНИЕ ПЛЕЙЛИСТА ==========
-let playlistAudio = null;
-let isPlayingPlaylist = false;
-let currentPlayingTrackIndex = 0;
-let currentPlayingTracks = [];
+let currentPlayingPlaylistId = null;
 
+// ========== ВОСПРОИЗВЕДЕНИЕ ПЛЕЙЛИСТА ==========
 function initAudio() {
     if (!playlistAudio) {
         playlistAudio = new Audio();
         playlistAudio.addEventListener('ended', playNextTrack);
-        playlistAudio.addEventListener('timeupdate', updateNowPlayingProgress);
-        playlistAudio.addEventListener('play', () => {
-            isPlayingPlaylist = true;
-            document.getElementById('npPlayPause').innerText = '⏸';
-        });
-        playlistAudio.addEventListener('pause', () => {
-            isPlayingPlaylist = false;
-            document.getElementById('npPlayPause').innerText = '▶';
-        });
     }
 }
 
@@ -802,7 +825,13 @@ function playPlaylist() {
         return;
     }
     
-    currentPlayingTracks = playlist.tracks;
+    // Останавливаем предыдущее воспроизведение
+    if (playlistAudio) {
+        playlistAudio.pause();
+    }
+    
+    currentPlayingPlaylistId = playlist.id;
+    currentPlayingTracks = [...playlist.tracks];
     currentPlayingTrackIndex = 0;
     playTrackFromPlaylist(0);
     showNowPlayingBar();
@@ -811,11 +840,7 @@ function playPlaylist() {
 function playTrackFromPlaylist(index) {
     if (index >= currentPlayingTracks.length) {
         // Плейлист закончился
-        if (playlistAudio) {
-            playlistAudio.pause();
-            isPlayingPlaylist = false;
-            document.getElementById('npPlayPause').innerText = '▶';
-        }
+        stopPlaylist();
         return;
     }
     
@@ -829,6 +854,8 @@ function playTrackFromPlaylist(index) {
     
     // Обновляем информацию в панели
     updateNowPlayingInfo(track);
+    isPlayingPlaylist = true;
+    document.getElementById('npPlayPause').innerText = '⏸';
 }
 
 function playNextTrack() {
@@ -841,10 +868,14 @@ function playPrevTrack() {
 
 function togglePlayPausePlaylist() {
     if (!playlistAudio) return;
-    if (isPlayingPlaylist) {
+    if (isPlayingPlaylist && !playlistAudio.paused) {
         playlistAudio.pause();
+        isPlayingPlaylist = false;
+        document.getElementById('npPlayPause').innerText = '▶';
     } else {
         playlistAudio.play();
+        isPlayingPlaylist = true;
+        document.getElementById('npPlayPause').innerText = '⏸';
     }
 }
 
@@ -855,10 +886,6 @@ function updateNowPlayingInfo(track) {
     document.getElementById('npCover').src = coverUrl;
 }
 
-function updateNowPlayingProgress() {
-    // Можно добавить прогресс-бар, если нужно
-}
-
 function showNowPlayingBar() {
     const bar = document.getElementById('nowPlayingBar');
     bar.classList.add('show');
@@ -867,18 +894,17 @@ function showNowPlayingBar() {
 function hideNowPlayingBar() {
     const bar = document.getElementById('nowPlayingBar');
     bar.classList.remove('show');
-    if (playlistAudio) {
-        playlistAudio.pause();
-        isPlayingPlaylist = false;
-    }
 }
 
 function stopPlaylist() {
     if (playlistAudio) {
         playlistAudio.pause();
-        isPlayingPlaylist = false;
-        document.getElementById('npPlayPause').innerText = '▶';
+        playlistAudio = null;
     }
+    isPlayingPlaylist = false;
+    currentPlayingPlaylistId = null;
+    currentPlayingTracks = [];
+    currentPlayingTrackIndex = 0;
     hideNowPlayingBar();
 }
 
@@ -948,6 +974,7 @@ playPlaylistBtn.onclick = () => {
 document.getElementById('npPlayPause').onclick = togglePlayPausePlaylist;
 document.getElementById('npClose').onclick = stopPlaylist;
 
+// Инициализация
 loadPlaylists();
 </script>
 </body>
