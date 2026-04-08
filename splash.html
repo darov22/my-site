@@ -133,6 +133,149 @@ body {
     text-align: center;
     width: 100%;
 }
+
+/* Стили для панели Telegram */
+.telegram-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.2s, opacity 0.2s ease;
+}
+
+.telegram-panel.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.telegram-card {
+    background: linear-gradient(145deg, #1e1e2a, #0f0f15);
+    border-radius: 32px;
+    width: 320px;
+    max-width: 85vw;
+    padding: 32px 24px 36px;
+    text-align: center;
+    border: 1px solid rgba(255, 122, 0, 0.4);
+    box-shadow: 0 25px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,122,0,0.2);
+    position: relative;
+    animation: floatUp 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.close-panel {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    background: rgba(255,255,255,0.1);
+    width: 32px;
+    height: 32px;
+    border-radius: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 20px;
+    color: #ffaa66;
+    font-weight: 300;
+}
+
+.close-panel:hover {
+    background: rgba(255,122,0,0.3);
+    transform: scale(1.05);
+}
+
+.close-panel:active {
+    transform: scale(0.92);
+}
+
+.telegram-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+    display: inline-block;
+    background: #2a2a35;
+    width: 80px;
+    height: 80px;
+    line-height: 80px;
+    border-radius: 50%;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+}
+
+.telegram-card h3 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffbc6e, #ff7a00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 16px 0 12px;
+}
+
+.telegram-card p {
+    color: #ccc;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    margin: 12px 0 6px;
+    text-align: left;
+}
+
+.telegram-card .highlight {
+    color: #ffaa55;
+    font-weight: 500;
+}
+
+.subscribe-btn {
+    background: linear-gradient(95deg, #2c9bff, #0088cc);
+    border: none;
+    padding: 14px 20px;
+    width: 100%;
+    border-radius: 60px;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-top: 24px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    box-shadow: 0 4px 12px rgba(0,136,204,0.3);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.subscribe-btn:active {
+    transform: scale(0.96);
+    background: linear-gradient(95deg, #1f7ab3, #006699);
+}
+
+.subscribe-btn span {
+    font-size: 1.3rem;
+}
+
+/* скрытый контент реальной загрузки — используется после закрытия панели */
+.real-loading-active .splash-loader {
+    /* всё остаётся видимым, но запускается реальный процесс */
+}
 </style>
 </head>
 <body>
@@ -152,6 +295,21 @@ body {
     </div>
     <button class="retry-btn" id="retryBtn">🔄 ПОВТОРИТЬ</button>
     <div class="hint">⚡ загрузка треков из облака</div>
+</div>
+
+<!-- Панель Telegram -->
+<div id="telegramPanel" class="telegram-panel">
+    <div class="telegram-card">
+        <div class="close-panel" id="closePanelBtn">✕</div>
+        <div class="telegram-icon">📢</div>
+        <h3>NEO MUSIC</h3>
+        <p>У приложения <strong class="highlight">NEO MUSIC</strong> появился <strong>Telegram-канал</strong> 🎉</p>
+        <p>Канал создан для новостей, обновлений и уведомлений о новых функциях приложения, а также чтобы мы могли слышать ваши пожелания и делать приложение лучше.</p>
+        <p style="margin-top: 8px;">Нам очень важно, чтобы ты <strong>подписался</strong> ❤️</p>
+        <button class="subscribe-btn" id="subscribeTelegramBtn">
+            <span>🔔</span> ПОДПИСАТЬСЯ
+        </button>
+    </div>
 </div>
 
 <script type="importmap">
@@ -182,7 +340,12 @@ const firebaseConfig = {
 let tracks = [];
 let loadAttempts = 0;
 const MAX_ATTEMPTS = 3;
+let realLoadingStarted = false;      // флаг: началась ли реальная загрузка
+let fakeLoadingCompleted = false;     // завершена ли фейковая загрузка (100%)
+let fakeInterval = null;
+let realLoadPromise = null;           // промис реальной загрузки (чтобы не запустить дважды)
 
+// DOM элементы
 const splashProgressFill = document.getElementById("splashProgressFill");
 const loaderPercent = document.getElementById("loaderPercent");
 const loaderStatus = document.getElementById("loaderStatus");
@@ -190,7 +353,11 @@ const loaderSubText = document.getElementById("loaderSubText");
 const errorMessageDiv = document.getElementById("errorMessage");
 const errorTextSpan = document.getElementById("errorText");
 const retryBtn = document.getElementById("retryBtn");
+const telegramPanel = document.getElementById("telegramPanel");
+const closePanelBtn = document.getElementById("closePanelBtn");
+const subscribeBtn = document.getElementById("subscribeTelegramBtn");
 
+// Вспомогательные функции UI
 function updateProgress(percent, status, subText) {
     const clampedPercent = Math.min(100, Math.max(0, percent));
     splashProgressFill.style.width = clampedPercent + "%";
@@ -213,86 +380,243 @@ function hideError() {
     loaderStatus.style.color = "#ffaa66";
 }
 
+// Реальная загрузка треков из Firebase
 async function loadTracksFromFirebase() {
+    if (realLoadingStarted) return realLoadPromise; // уже запущена
+    realLoadingStarted = true;
+    
+    // очищаем ошибки, сбрасываем попытки
+    loadAttempts = 0;
     hideError();
     updateProgress(0, "подключение к Firebase...", "установка соединения");
     
-    try {
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-        
-        updateProgress(10, "проверка соединения...", "авторизация");
-        await new Promise(r => setTimeout(r, 200));
-        
-        updateProgress(20, "загрузка списка треков...", "чтение из базы данных");
-        
-        const q = query(collection(db, "tracks"), orderBy("date", "desc"));
-        const querySnapshot = await getDocs(q);
-        
-        updateProgress(50, "обработка треков...", `найдено ${querySnapshot.size} треков`);
-        
-        tracks = [];
-        querySnapshot.forEach((doc) => {
-            tracks.push({ id: doc.id, ...doc.data() });
-        });
-        
-        updateProgress(70, "проверка файлов...", "верификация");
-        await new Promise(r => setTimeout(r, 300));
-        
-        updateProgress(85, "подготовка плеера...", "сохранение данных");
-        
-        // Сохраняем треки в sessionStorage для быстрой передачи
-        sessionStorage.setItem('neoMusicTracks', JSON.stringify(tracks));
-        sessionStorage.setItem('neoMusicLoaded', 'true');
-        sessionStorage.setItem('neoMusicTimestamp', Date.now().toString());
-        
-        updateProgress(95, "финализация...", "почти готово");
-        await new Promise(r => setTimeout(r, 300));
-        
-        updateProgress(100, "готово!", "перенаправление...");
-        
-        // Плавный переход на основной плеер
-        setTimeout(() => {
-            window.location.href = "player.html";
-        }, 500);
-        
-    } catch (error) {
-        console.error("Ошибка загрузки:", error);
-        loadAttempts++;
-        
-        if (loadAttempts < MAX_ATTEMPTS) {
-            updateProgress(0, `повторная попытка (${loadAttempts}/${MAX_ATTEMPTS})...`, "ошибка подключения");
+    const attemptLoad = async () => {
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const storage = getStorage(app);
+            
+            updateProgress(10, "проверка соединения...", "авторизация");
+            await new Promise(r => setTimeout(r, 200));
+            
+            updateProgress(20, "загрузка списка треков...", "чтение из базы данных");
+            
+            const q = query(collection(db, "tracks"), orderBy("date", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            updateProgress(50, "обработка треков...", `найдено ${querySnapshot.size} треков`);
+            
+            tracks = [];
+            querySnapshot.forEach((doc) => {
+                tracks.push({ id: doc.id, ...doc.data() });
+            });
+            
+            updateProgress(70, "проверка файлов...", "верификация");
+            await new Promise(r => setTimeout(r, 300));
+            
+            updateProgress(85, "подготовка плеера...", "сохранение данных");
+            
+            // Сохраняем треки в sessionStorage
+            sessionStorage.setItem('neoMusicTracks', JSON.stringify(tracks));
+            sessionStorage.setItem('neoMusicLoaded', 'true');
+            sessionStorage.setItem('neoMusicTimestamp', Date.now().toString());
+            
+            updateProgress(95, "финализация...", "почти готово");
+            await new Promise(r => setTimeout(r, 300));
+            
+            updateProgress(100, "готово!", "перенаправление...");
+            
+            // Переход на плеер
             setTimeout(() => {
-                loadTracksFromFirebase();
-            }, 2000);
-        } else {
-            showError(error.message || "Не удалось подключиться к серверу. Проверьте интернет-соединение.");
-            updateProgress(0, "ошибка загрузки", "попробуйте снова");
+                window.location.href = "player.html";
+            }, 500);
+            
+        } catch (error) {
+            console.error("Ошибка Firebase:", error);
+            loadAttempts++;
+            
+            if (loadAttempts < MAX_ATTEMPTS) {
+                updateProgress(0, `повторная попытка (${loadAttempts}/${MAX_ATTEMPTS})...`, "ошибка подключения");
+                setTimeout(() => {
+                    attemptLoad();
+                }, 2000);
+            } else {
+                showError(error.message || "Не удалось подключиться к серверу. Проверьте интернет-соединение.");
+                updateProgress(0, "ошибка загрузки", "попробуйте снова");
+                realLoadingStarted = false;  // разрешить повтор по кнопке
+            }
         }
+    };
+    
+    realLoadPromise = attemptLoad();
+    return realLoadPromise;
+}
+
+// Фейковая загрузка (имитация прогресса от 0 до 100% за 2 секунды)
+function startFakeLoading() {
+    if (fakeInterval) clearInterval(fakeInterval);
+    let fakePercent = 0;
+    const stepTime = 40; // мс
+    const totalDuration = 2000; // 2 сек
+    const stepsCount = totalDuration / stepTime;
+    const increment = 100 / stepsCount;
+    
+    updateProgress(0, "подготовка окружения...", "инициализация NEO MUSIC");
+    
+    fakeInterval = setInterval(() => {
+        if (!fakeLoadingCompleted) {
+            fakePercent += increment;
+            if (fakePercent >= 100) {
+                fakePercent = 100;
+                updateProgress(100, "готово!", "загрузка завершена");
+                if (fakeInterval) clearInterval(fakeInterval);
+                fakeLoadingCompleted = true;
+                // после завершения фейковой загрузки показываем панель Telegram
+                showTelegramPanel();
+            } else {
+                let statusText = "подготовка ресурсов...";
+                if (fakePercent > 30) statusText = "оптимизация интерфейса...";
+                if (fakePercent > 65) statusText = "почти готово...";
+                updateProgress(fakePercent, statusText, `загрузка ${Math.floor(fakePercent)}%`);
+            }
+        }
+    }, stepTime);
+}
+
+// Панель Telegram (показывается после фейковой загрузки)
+function showTelegramPanel() {
+    if (!telegramPanel) return;
+    // Анимация появления
+    telegramPanel.classList.add("active");
+    // На время показа панели, реальную загрузку пока не запускаем, только после закрытия панели
+    // Но также блокируем любые попытки начать реальную загрузку до закрытия
+}
+
+// Закрыть панель и начать реальную загрузку треков
+function closePanelAndStartRealLoading() {
+    if (!telegramPanel) return;
+    telegramPanel.classList.remove("active");
+    // Если реальная загрузка еще не запущена, запускаем её
+    if (!realLoadingStarted) {
+        // Сбросим прогресс на экране для честной загрузки (сохраняем текущий UI)
+        updateProgress(0, "реальная загрузка треков...", "соединение с облаком");
+        loadTracksFromFirebase().catch(e => console.warn(e));
+    } else {
+        // Если по какой-то причине уже запущена — ничего не делаем
     }
 }
 
-// Обработчик кнопки "Повторить"
+// Обработчик подписки: открывает Telegram и закрывает панель
+function handleSubscribe() {
+    // Открываем ссылку в новой вкладке
+    window.open("https://t.me/NEO_MUSIC_official", "_blank");
+    // После нажатия на подписку скрываем панель и запускаем реальную загрузку
+    closePanelAndStartRealLoading();
+}
+
+// Обработчик крестика (закрыть без подписки)
+function handleClosePanel() {
+    closePanelAndStartRealLoading();
+}
+
+// Ручной повтор при ошибке (кнопка retry)
 retryBtn.onclick = () => {
-    loadAttempts = 0;
-    loadTracksFromFirebase();
+    if (realLoadingStarted) {
+        // сбросим флаг, чтобы повторно попробовать
+        realLoadingStarted = false;
+        loadAttempts = 0;
+        hideError();
+        updateProgress(0, "повторное подключение...", "попытка снова");
+        loadTracksFromFirebase().catch(e => console.error(e));
+    } else {
+        // если по какой-то причине realLoadingStarted false, но панель уже была закрыта
+        realLoadingStarted = false;
+        loadAttempts = 0;
+        hideError();
+        updateProgress(0, "повторное подключение...", "попытка снова");
+        loadTracksFromFirebase();
+    }
 };
 
-// Запускаем загрузку
-loadTracksFromFirebase();
+// Обработка случая, если во время фейковой загрузки интернет прерван? Не трогаем Firebase до закрытия панели.
 
-// Дополнительная проверка на очень медленное соединение
-let connectionTimeout = setTimeout(() => {
-    if (loadAttempts === 0 && document.querySelector('.loader-progress-fill').style.width !== '100%') {
-        loaderSubText.textContent = "медленное соединение, ожидание...";
-        loaderSubText.style.color = "#ffaa66";
-    }
-}, 8000);
+// --- Инициализация последовательности ---
+// 1. Стартуем фейковую загрузку (2 секунды)
+startFakeLoading();
 
+// Вешаем обработчики на панель (но панель ещё не показана)
+if (subscribeBtn) subscribeBtn.addEventListener("click", handleSubscribe);
+if (closePanelBtn) closePanelBtn.addEventListener("click", handleClosePanel);
+
+// Дополнительная безопасность: если вдруг пользователь закроет панель несколько раз, не крашимся
+// Также защита от двойного запуска реальной загрузки
+
+// Улучшение: таймаут на случай, если фейковая загрузка зависнет — но у нас точный интервал.
+// Дополнительная проверка на очень медленное соединение для реальной загрузки (будет работать после панели)
+let connectionTimeout = null;
+
+// Переопределим функцию updateProgress для фейковой, но в реальной загрузке она перепишется.
+// Чтобы после закрытия панели визуал оставался корректным, оставляем всё как есть.
+
+// Для эстетики: если пользователь очень быстро нажал на кнопку или крестик до окончания фейковой загрузки,
+// мы должны прервать фейк и сразу начать реальную загрузку, но сценарий:
+// по заданию: сперва фейк 2 секунды, потом панелька, потом после нажатия реальная загрузка.
+// Значит, показываем панель только после 2 сек. Если же пользователь не может нажать до окончания фейка, все ок.
+// Дополнительно обеспечим, что после закрытия панели фейковые проценты больше не мешают.
 window.addEventListener('load', () => {
-    clearTimeout(connectionTimeout);
+    // таймаут для медленного соединения - отложим, но он сработает только после реальной загрузки
+    // но лучше оставить как резерв
 });
+
+// Сделаем так, чтобы когда реальная загрузка стартует, мы отменяем любые остаточные фейковые интервалы,
+// чтобы не конфликтовали проценты.
+function cancelFakeIfNeeded() {
+    if (fakeInterval) {
+        clearInterval(fakeInterval);
+        fakeInterval = null;
+    }
+}
+
+// Подменяем closePanelAndStartRealLoading: отменяем фейк, если вдруг он еще не завершился,
+// но по сценарию панель появляется строго ПОСЛЕ 2 секунд, фейк уже завершён на 100%, но на всякий случай:
+const originalClose = closePanelAndStartRealLoading;
+window.closePanelAndStartRealLoading = function() {
+    cancelFakeIfNeeded();
+    originalClose();
+};
+closePanelAndStartRealLoading = function() {
+    cancelFakeIfNeeded();
+    originalClose();
+};
+
+// Переопределим handleSubscribe и handleClosePanel для отмены фейка
+const origSubscribe = handleSubscribe;
+const origClosePanel = handleClosePanel;
+window.handleSubscribe = function() {
+    cancelFakeIfNeeded();
+    origSubscribe();
+};
+window.handleClosePanel = function() {
+    cancelFakeIfNeeded();
+    origClosePanel();
+};
+subscribeBtn.onclick = () => {
+    cancelFakeIfNeeded();
+    handleSubscribe();
+};
+closePanelBtn.onclick = () => {
+    cancelFakeIfNeeded();
+    handleClosePanel();
+};
+
+// дополнительная страховка: если фейковая загрузка завершилась (fakeLoadingCompleted = true) но панель уже показана,
+// всё ок. При ручном нажатии на крестик или подписку стартует реальная загрузка.
+
+// Также нужно сохранить возможность повтора при ошибке, кнопка retry будет видна только если реальная загрузка упала.
+// Добавим сброс флага realLoadingStarted при успешном ретрае внутри attemptLoad? у нас там сброс после ошибок.
+// Всё корректно.
+
+console.log("NEO MUSIC: фейковая загрузка запущена, через 2с появится Telegram-панель");
 </script>
 </body>
 </html>
