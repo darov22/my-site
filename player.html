@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>NEO MUSIC | Плеер</title>
 <style>
-/* Все стили такие же как в предыдущей версии */
+/* Все стили такие же как в предыдущей версии player.html */
 * {
     margin: 0;
     padding: 0;
@@ -559,7 +559,6 @@ body {
     text-shadow: 0 0 10px #ff7a00;
 }
 
-/* Модальное окно выбора плейлиста */
 .playlist-selector {
     position: fixed;
     bottom: 0;
@@ -763,6 +762,69 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+.now-playing-bar {
+    position: fixed;
+    bottom: 90px;
+    left: 20px;
+    right: 20px;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 30px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 95;
+    border: 1px solid rgba(255, 122, 0, 0.5);
+    transform: translateY(100px);
+    transition: 0.3s;
+    opacity: 0;
+    visibility: hidden;
+}
+.now-playing-bar.show {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+.now-playing-cover {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    object-fit: cover;
+}
+.now-playing-info {
+    flex: 1;
+}
+.now-playing-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+.now-playing-artist {
+    font-size: 10px;
+    color: #ffaa66;
+}
+.now-playing-control {
+    background: #ff7a00;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 30px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.now-playing-close {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 20px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+}
+
 @media (max-width: 550px) {
     .vinyl-container {
         width: min(70vw, 70vh, 280px);
@@ -890,6 +952,16 @@ body {
     </div>
 </div>
 
+<div id="globalNowPlayingBar" class="now-playing-bar">
+    <img id="gnpCover" class="now-playing-cover" src="" alt="cover">
+    <div class="now-playing-info">
+        <div id="gnpTitle" class="now-playing-title">Трек</div>
+        <div id="gnpArtist" class="now-playing-artist">Исполнитель</div>
+    </div>
+    <button id="gnpPlayPause" class="now-playing-control">▶</button>
+    <button id="gnpClose" class="now-playing-close">✖</button>
+</div>
+
 <div class="navbar">
     <div class="nav-home">🏠</div>
     <div>🔥</div>
@@ -918,9 +990,15 @@ const storage = getStorage(app);
 
 let tracks = [];
 let currentTrackIdx = 0;
-let currentAudioUrl = null;
 let currentSelectedTrack = null;
 let userPlaylists = [];
+
+// Глобальный аудиоплеер для плейлиста
+let globalAudio = null;
+let isPlayingGlobal = false;
+let globalPlaylistTracks = [];
+let globalPlaylistIndex = 0;
+let globalPlaylistId = null;
 
 // Загрузка плейлистов из localStorage
 function loadPlaylistsFromLocal() {
@@ -1073,7 +1151,7 @@ async function createNewPlaylist() {
     }
 }
 
-// Аудио плеер
+// Аудио плеер для одиночных треков
 const audio = document.getElementById("audio");
 const playerDiv = document.getElementById("player");
 const playPauseBtn = document.getElementById("playPauseBtn");
@@ -1097,22 +1175,124 @@ const fsTrackTitleSpan = document.getElementById("fsTrackTitle");
 const fsTrackArtistSpan = document.getElementById("fsTrackArtist");
 const fsCenterImg = document.getElementById("fsCenterImg");
 
+// Глобальная панель "Сейчас играет"
+const globalBar = document.getElementById("globalNowPlayingBar");
+const gnpCover = document.getElementById("gnpCover");
+const gnpTitle = document.getElementById("gnpTitle");
+const gnpArtist = document.getElementById("gnpArtist");
+const gnpPlayPause = document.getElementById("gnpPlayPause");
+const gnpClose = document.getElementById("gnpClose");
+
+function showGlobalBar() {
+    globalBar.classList.add("show");
+}
+
+function hideGlobalBar() {
+    globalBar.classList.remove("show");
+}
+
+function updateGlobalBar(track) {
+    gnpTitle.innerText = track.title || "Трек";
+    gnpArtist.innerText = track.artist || "Неизвестен";
+    const coverUrl = track.coverUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ff7a00'/%3E%3Ctext x='50' y='67' font-size='45' text-anchor='middle' fill='white'%3E🎵%3C/text%3E%3C/svg%3E";
+    gnpCover.src = coverUrl;
+}
+
+// Функции для глобального воспроизведения плейлиста
+function initGlobalAudio() {
+    if (!globalAudio) {
+        globalAudio = new Audio();
+        globalAudio.addEventListener('ended', () => {
+            playNextGlobalTrack();
+        });
+        globalAudio.addEventListener('play', () => {
+            isPlayingGlobal = true;
+            gnpPlayPause.innerHTML = '⏸';
+        });
+        globalAudio.addEventListener('pause', () => {
+            isPlayingGlobal = false;
+            gnpPlayPause.innerHTML = '▶';
+        });
+        globalAudio.addEventListener('timeupdate', () => {
+            // Можно добавить обновление прогресса если нужно
+        });
+    }
+}
+
+function startGlobalPlaylist(playlistId, tracks, startIndex, currentTime) {
+    initGlobalAudio();
+    globalAudio.pause();
+    
+    globalPlaylistId = playlistId;
+    globalPlaylistTracks = tracks;
+    globalPlaylistIndex = startIndex;
+    
+    if (globalPlaylistTracks.length > 0 && globalPlaylistIndex < globalPlaylistTracks.length) {
+        const track = globalPlaylistTracks[globalPlaylistIndex];
+        globalAudio.src = track.mp3Url;
+        globalAudio.currentTime = currentTime || 0;
+        globalAudio.load();
+        globalAudio.play().catch(e => console.log(e));
+        updateGlobalBar(track);
+        showGlobalBar();
+        isPlayingGlobal = true;
+        gnpPlayPause.innerHTML = '⏸';
+    }
+}
+
+function playNextGlobalTrack() {
+    if (globalPlaylistIndex + 1 < globalPlaylistTracks.length) {
+        globalPlaylistIndex++;
+        const track = globalPlaylistTracks[globalPlaylistIndex];
+        globalAudio.src = track.mp3Url;
+        globalAudio.load();
+        globalAudio.play().catch(e => console.log(e));
+        updateGlobalBar(track);
+    } else {
+        // Плейлист закончился
+        stopGlobalPlaylist();
+    }
+}
+
+function stopGlobalPlaylist() {
+    if (globalAudio) {
+        globalAudio.pause();
+    }
+    isPlayingGlobal = false;
+    globalPlaylistTracks = [];
+    globalPlaylistIndex = 0;
+    globalPlaylistId = null;
+    hideGlobalBar();
+}
+
+function toggleGlobalPlayPause() {
+    if (!globalAudio) return;
+    if (isPlayingGlobal && !globalAudio.paused) {
+        globalAudio.pause();
+    } else {
+        globalAudio.play();
+    }
+}
+
 // Навигация
 function goToPlaylistsPage() {
-    // Сохраняем текущее состояние воспроизведения перед уходом
-    if (audio && !audio.paused) {
+    // Сохраняем состояние глобального плейлиста
+    if (globalAudio && globalPlaylistTracks.length > 0 && !globalAudio.paused) {
         const state = {
-            track: tracks[currentTrackIdx],
-            currentTime: audio.currentTime,
+            type: 'playlist',
+            playlistId: globalPlaylistId,
+            trackIndex: globalPlaylistIndex,
+            tracks: globalPlaylistTracks,
+            currentTime: globalAudio.currentTime,
             isPlaying: true
         };
-        sessionStorage.setItem('playerPlaybackState', JSON.stringify(state));
+        sessionStorage.setItem('globalPlaybackState', JSON.stringify(state));
     }
     window.location.href = 'playlists.html';
 }
 
 function goToHomePage() {
-    // Обновляем список треков
+    // Уже на главной
     loadAllTracks();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1232,23 +1412,27 @@ async function loadAllTracks() {
         });
         renderPlaylist();
         
-        // Проверяем, есть ли сохраненное состояние воспроизведения
-        const savedState = sessionStorage.getItem('playerPlaybackState');
+        // Восстанавливаем состояние глобального плейлиста
+        const savedState = sessionStorage.getItem('globalPlaybackState');
         if (savedState) {
             try {
                 const state = JSON.parse(savedState);
-                if (state.track) {
+                if (state.type === 'playlist' && state.tracks && state.tracks.length > 0) {
+                    startGlobalPlaylist(state.playlistId, state.tracks, state.trackIndex, state.currentTime);
+                    if (!state.isPlaying && globalAudio) {
+                        globalAudio.pause();
+                    }
+                } else if (state.type === 'single' && state.track) {
                     const trackIndex = tracks.findIndex(t => t.id === state.track.id);
                     if (trackIndex !== -1) {
                         currentTrackIdx = trackIndex;
                         loadTrackByIdx(currentTrackIdx);
-                        audio.currentTime = state.currentTime || 0;
                         if (state.isPlaying) {
                             audio.play().catch(e => console.log(e));
                         }
                     }
                 }
-                sessionStorage.removeItem('playerPlaybackState');
+                sessionStorage.removeItem('globalPlaybackState');
             } catch(e) {}
         }
     } catch (error) { 
@@ -1296,7 +1480,15 @@ function renderPlaylist() {
         `;
         
         const playZone = div.querySelector('.song-info');
-        playZone.addEventListener('click', () => { loadTrackByIdx(idx); audio.play().catch(e=>console.log(e)); });
+        playZone.addEventListener('click', () => { 
+            // Останавливаем глобальный плейлист если играет
+            if (globalAudio) {
+                globalAudio.pause();
+                hideGlobalBar();
+            }
+            loadTrackByIdx(idx); 
+            audio.play().catch(e=>console.log(e)); 
+        });
         
         const addBtn = div.querySelector('.add-to-playlist-btn');
         addBtn.addEventListener('click', (e) => {
@@ -1456,6 +1648,10 @@ document.getElementById("avatarFile").addEventListener("change", (e) => {
         reader.readAsDataURL(file);
     }
 });
+
+// Обработчики глобальной панели
+gnpPlayPause.onclick = toggleGlobalPlayPause;
+gnpClose.onclick = stopGlobalPlaylist;
 
 // Запуск
 loadPlaylistsFromLocal();
