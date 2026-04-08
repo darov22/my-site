@@ -117,7 +117,6 @@ body {
     color: #777;
 }
 
-/* Модальное окно создания плейлиста */
 .modal {
     position: fixed;
     top: 0;
@@ -200,7 +199,6 @@ body {
 .btn-cancel { background: #2c2c2c; color: #ccc; }
 .btn-create { background: linear-gradient(95deg, #ff7a00, #ffaa33); color: #111; }
 
-/* Страница деталей плейлиста */
 .playlist-detail {
     position: fixed;
     top: 0;
@@ -411,7 +409,6 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-/* Панель "Сейчас играет" */
 .now-playing-bar {
     position: fixed;
     bottom: 90px;
@@ -487,7 +484,6 @@ body {
     <div class="empty-msg">🎵 Нет плейлистов<br>Нажми + чтобы создать</div>
 </div>
 
-<!-- Модальное окно создания плейлиста -->
 <div id="createModal" class="modal">
     <div class="modal-card">
         <h3>✨ НОВЫЙ ПЛЕЙЛИСТ</h3>
@@ -504,7 +500,6 @@ body {
     </div>
 </div>
 
-<!-- Страница деталей плейлиста -->
 <div id="playlistDetail" class="playlist-detail">
     <div class="detail-header">
         <button class="back-btn" id="closeDetailBtn">←</button>
@@ -521,7 +516,6 @@ body {
     <div class="songs-list" id="songsList"></div>
 </div>
 
-<!-- Плавающая панель сейчас играет -->
 <div id="nowPlayingBar" class="now-playing-bar">
     <img id="npCover" class="now-playing-cover" src="" alt="cover">
     <div class="now-playing-info">
@@ -564,9 +558,20 @@ let currentPlayingTrackIndex = 0;
 let currentPlayingTracks = [];
 let currentPlayingPlaylistId = null;
 
-// Навигация
+// Навигация - ПЕРЕДАЕМ СОСТОЯНИЕ ПЛЕЙЛИСТА НА ГЛАВНУЮ
 function goToHomePage() {
-    // Не останавливаем музыку при переходе!
+    // Сохраняем полное состояние плейлиста в sessionStorage
+    if (playlistAudio && currentPlayingTracks.length > 0) {
+        const state = {
+            type: 'playlist',
+            playlistId: currentPlayingPlaylistId,
+            trackIndex: currentPlayingTrackIndex,
+            tracks: currentPlayingTracks,
+            currentTime: playlistAudio.currentTime,
+            isPlaying: !playlistAudio.paused
+        };
+        sessionStorage.setItem('globalPlaybackState', JSON.stringify(state));
+    }
     window.location.href = 'player.html';
 }
 
@@ -665,7 +670,6 @@ function hideLoading() {
     if (loader) loader.classList.remove("active");
 }
 
-// Создание плейлиста
 let selectedAvatar = null;
 
 async function createPlaylist(name, avatarFile) {
@@ -704,9 +708,7 @@ async function createPlaylist(name, avatarFile) {
     return true;
 }
 
-// Открытие деталей плейлиста
 function openPlaylistDetail(playlistId) {
-    // НЕ останавливаем музыку при открытии деталей!
     currentPlaylistId = playlistId;
     const playlist = userPlaylists.find(p => p.id === playlistId);
     if (!playlist) return;
@@ -755,7 +757,6 @@ function renderSongsInPlaylist(tracks) {
 }
 
 function playSingleTrack(track) {
-    // Останавливаем воспроизведение плейлиста
     if (playlistAudio) {
         playlistAudio.pause();
         playlistAudio = null;
@@ -763,7 +764,13 @@ function playSingleTrack(track) {
     isPlayingPlaylist = false;
     currentPlayingPlaylistId = null;
     hideNowPlayingBar();
-    sessionStorage.setItem('playTrackOnHome', JSON.stringify(track));
+    
+    const state = {
+        type: 'single',
+        track: track,
+        isPlaying: true
+    };
+    sessionStorage.setItem('globalPlaybackState', JSON.stringify(state));
     window.location.href = 'player.html';
 }
 
@@ -777,13 +784,11 @@ function removeTrackFromPlaylist(trackId) {
         renderPlaylists();
         showNotification("🗑 Трек удален из плейлиста", "#ffaa66");
         
-        // Если удалили трек из текущего воспроизводимого плейлиста
         if (currentPlayingPlaylistId === playlist.id && currentPlayingTracks.length > 0) {
             currentPlayingTracks = playlist.tracks;
             if (currentPlayingTrackIndex >= currentPlayingTracks.length) {
                 stopPlaylist();
             } else if (playlistAudio && playlistAudio.src) {
-                // Если текущий трек удалили, переключаем на следующий
                 const currentTrackId = currentPlayingTracks[currentPlayingTrackIndex]?.id;
                 if (trackId === currentTrackId) {
                     playNextTrack();
@@ -797,7 +802,6 @@ function deleteCurrentPlaylist() {
     if (!currentPlaylistId) return;
     if (!confirm("Вы уверены, что хотите удалить этот плейлист?")) return;
     
-    // Если удаляем текущий воспроизводимый плейлист, останавливаем
     if (currentPlaylistId === currentPlayingPlaylistId) {
         stopPlaylist();
     }
@@ -810,7 +814,7 @@ function deleteCurrentPlaylist() {
     showNotification("✅ Плейлист удален", "#aaffaa");
 }
 
-// ========== ВОСПРОИЗВЕДЕНИЕ ПЛЕЙЛИСТА ==========
+// ВОСПРОИЗВЕДЕНИЕ ПЛЕЙЛИСТА
 function initAudio() {
     if (!playlistAudio) {
         playlistAudio = new Audio();
@@ -827,7 +831,6 @@ function playPlaylist() {
         return;
     }
     
-    // Останавливаем предыдущее воспроизведение
     if (playlistAudio) {
         playlistAudio.pause();
     }
@@ -841,7 +844,6 @@ function playPlaylist() {
 
 function playTrackFromPlaylist(index) {
     if (index >= currentPlayingTracks.length) {
-        // Плейлист закончился
         stopPlaylist();
         return;
     }
@@ -861,10 +863,6 @@ function playTrackFromPlaylist(index) {
 
 function playNextTrack() {
     playTrackFromPlaylist(currentPlayingTrackIndex + 1);
-}
-
-function playPrevTrack() {
-    playTrackFromPlaylist(currentPlayingTrackIndex - 1);
 }
 
 function togglePlayPausePlaylist() {
@@ -961,76 +959,19 @@ confirmBtn.onclick = async () => {
 };
 
 deletePlaylistBtn.onclick = deleteCurrentPlaylist;
-
 closeDetailBtn.onclick = () => {
     document.getElementById("playlistDetail").classList.remove("active");
     currentPlaylistId = null;
-    // НЕ останавливаем музыку при закрытии деталей!
-    // Музыка продолжает играть в фоне
 };
 
 playPlaylistBtn.onclick = () => {
     playPlaylist();
 };
 
-// Кнопки панели "Сейчас играет"
 document.getElementById('npPlayPause').onclick = togglePlayPausePlaylist;
 document.getElementById('npClose').onclick = stopPlaylist;
 
-// При загрузке страницы, если есть сохраненное состояние воспроизведения, восстанавливаем панель
-function restorePlaybackState() {
-    if (currentPlayingPlaylistId && playlistAudio && !playlistAudio.paused) {
-        showNowPlayingBar();
-        const currentTrack = currentPlayingTracks[currentPlayingTrackIndex];
-        if (currentTrack) {
-            updateNowPlayingInfo(currentTrack);
-        }
-        document.getElementById('npPlayPause').innerHTML = '⏸';
-    }
-}
-
-// Инициализация
 loadPlaylists();
-
-// Сохраняем состояние перед уходом со страницы
-window.addEventListener('beforeunload', () => {
-    if (playlistAudio && !playlistAudio.paused) {
-        // Сохраняем состояние в sessionStorage
-        const state = {
-            playlistId: currentPlayingPlaylistId,
-            trackIndex: currentPlayingTrackIndex,
-            tracks: currentPlayingTracks,
-            currentTime: playlistAudio.currentTime
-        };
-        sessionStorage.setItem('playlistPlaybackState', JSON.stringify(state));
-    }
-});
-
-// Восстанавливаем состояние при загрузке
-const savedState = sessionStorage.getItem('playlistPlaybackState');
-if (savedState) {
-    try {
-        const state = JSON.parse(savedState);
-        if (state.playlistId && state.tracks && state.tracks.length > 0) {
-            currentPlayingPlaylistId = state.playlistId;
-            currentPlayingTracks = state.tracks;
-            currentPlayingTrackIndex = state.trackIndex;
-            
-            initAudio();
-            const track = currentPlayingTracks[currentPlayingTrackIndex];
-            if (track) {
-                playlistAudio.src = track.mp3Url;
-                playlistAudio.currentTime = state.currentTime || 0;
-                playlistAudio.play().catch(e => console.log(e));
-                updateNowPlayingInfo(track);
-                showNowPlayingBar();
-                document.getElementById('npPlayPause').innerHTML = '⏸';
-                isPlayingPlaylist = true;
-            }
-        }
-        sessionStorage.removeItem('playlistPlaybackState');
-    } catch(e) {}
-}
 </script>
 </body>
 </html>
