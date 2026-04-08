@@ -1,1 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Загрузка | NEO MUSIC</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
+body {
+    background: radial-gradient(circle at center, #0f0f0f, #030303);
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.splash-loader {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #0f0f0f, #030303);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 3000;
+}
+
+.loader-ring {
+    width: 80px;
+    height: 80px;
+    border: 4px solid rgba(255, 122, 0, 0.2);
+    border-top: 4px solid #ff7a00;
+    border-radius: 50%;
+    animation: spinRing 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    margin-bottom: 30px;
+}
+
+@keyframes spinRing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loader-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff9a3c, #ff7a00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+
+.loader-sub {
+    font-size: 0.85rem;
+    color: #ffaa66;
+    margin-bottom: 24px;
+    opacity: 0.9;
+}
+
+.loader-progress-track {
+    width: 260px;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.loader-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff9a3c, #ffcc66);
+    border-radius: 8px;
+    transition: width 0.15s linear;
+}
+
+.loader-percent {
+    font-size: 0.9rem;
+    color: #ffaa66;
+    font-weight: 500;
+}
+
+.loader-status {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 12px;
+}
+
+.error-message {
+    color: #ff6666;
+    background: rgba(255, 50, 50, 0.1);
+    padding: 12px 24px;
+    border-radius: 40px;
+    margin-top: 30px;
+    font-size: 0.85rem;
+    border: 1px solid #ff6666;
+    display: none;
+}
+
+.retry-btn {
+    margin-top: 20px;
+    background: linear-gradient(95deg, #ff7a00, #ffaa33);
+    border: none;
+    padding: 10px 28px;
+    border-radius: 40px;
+    color: #111;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.retry-btn:active {
+    transform: scale(0.96);
+}
+
+.hint {
+    position: fixed;
+    bottom: 30px;
+    font-size: 0.7rem;
+    color: #555;
+    text-align: center;
+    width: 100%;
+}
+</style>
+</head>
+<body>
+
+<div class="splash-loader" id="splashLoader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">NEO MUSIC</div>
+    <div class="loader-sub" id="loaderSubText">подключение к облаку...</div>
+    <div class="loader-progress-track">
+        <div class="loader-progress-fill" id="splashProgressFill"></div>
+    </div>
+    <div class="loader-percent" id="loaderPercent">0%</div>
+    <div class="loader-status" id="loaderStatus">инициализация...</div>
+    <div class="error-message" id="errorMessage">
+        ⚠️ Ошибка подключения<br>
+        <span id="errorText"></span>
+    </div>
+    <button class="retry-btn" id="retryBtn">🔄 ПОВТОРИТЬ</button>
+    <div class="hint">⚡ загрузка треков из облака</div>
+</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js",
+      "firebase/storage": "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js"
+    }
+  }
+</script>
+
+<script type="module">
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, query, orderBy, getDocs } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDBmazPKil5xsLBYteYftz_nmKnUdQojS0",
+  authDomain: "egfdgdfg-3504c.firebaseapp.com",
+  projectId: "egfdgdfg-3504c",
+  storageBucket: "egfdgdfg-3504c.firebasestorage.app",
+  messagingSenderId: "764542974854",
+  appId: "1:764542974854:web:1f2621cfa613e85e4f4a07",
+  measurementId: "G-8PTHXNW4C5"
+};
+
+let tracks = [];
+let loadAttempts = 0;
+const MAX_ATTEMPTS = 3;
+
+const splashProgressFill = document.getElementById("splashProgressFill");
+const loaderPercent = document.getElementById("loaderPercent");
+const loaderStatus = document.getElementById("loaderStatus");
+const loaderSubText = document.getElementById("loaderSubText");
+const errorMessageDiv = document.getElementById("errorMessage");
+const errorTextSpan = document.getElementById("errorText");
+const retryBtn = document.getElementById("retryBtn");
+
+function updateProgress(percent, status, subText) {
+    const clampedPercent = Math.min(100, Math.max(0, percent));
+    splashProgressFill.style.width = clampedPercent + "%";
+    loaderPercent.textContent = Math.floor(clampedPercent) + "%";
+    if (status) loaderStatus.textContent = status;
+    if (subText) loaderSubText.textContent = subText;
+}
+
+function showError(errorMsg) {
+    errorTextSpan.textContent = errorMsg;
+    errorMessageDiv.style.display = "block";
+    retryBtn.style.display = "block";
+    loaderStatus.style.color = "#ff6666";
+    loaderStatus.textContent = "❌ ошибка загрузки";
+}
+
+function hideError() {
+    errorMessageDiv.style.display = "none";
+    retryBtn.style.display = "none";
+    loaderStatus.style.color = "#ffaa66";
+}
+
+async function loadTracksFromFirebase() {
+    hideError();
+    updateProgress(0, "подключение к Firebase...", "установка соединения");
+    
+    try {
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        updateProgress(10, "проверка соединения...", "авторизация");
+        await new Promise(r => setTimeout(r, 200));
+        
+        updateProgress(20, "загрузка списка треков...", "чтение из базы данных");
+        
+        const q = query(collection(db, "tracks"), orderBy("date", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        updateProgress(50, "обработка треков...", `найдено ${querySnapshot.size} треков`);
+        
+        tracks = [];
+        querySnapshot.forEach((doc) => {
+            tracks.push({ id: doc.id, ...doc.data() });
+        });
+        
+        updateProgress(70, "проверка файлов...", "верификация");
+        await new Promise(r => setTimeout(r, 300));
+        
+        updateProgress(85, "подготовка плеера...", "сохранение данных");
+        
+        // Сохраняем треки в sessionStorage для быстрой передачи
+        sessionStorage.setItem('neoMusicTracks', JSON.stringify(tracks));
+        sessionStorage.setItem('neoMusicLoaded', 'true');
+        sessionStorage.setItem('neoMusicTimestamp', Date.now().toString());
+        
+        updateProgress(95, "финализация...", "почти готово");
+        await new Promise(r => setTimeout(r, 300));
+        
+        updateProgress(100, "готово!", "перенаправление...");
+        
+        // Плавный переход на основной плеер
+        setTimeout(() => {
+            window.location.href = "player.html";
+        }, 500);
+        
+    } catch (error) {
+        console.error("Ошибка загрузки:", error);
+        loadAttempts++;
+        
+        if (loadAttempts < MAX_ATTEMPTS) {
+            updateProgress(0, `повторная попытка (${loadAttempts}/${MAX_ATTEMPTS})...`, "ошибка подключения");
+            setTimeout(() => {
+                loadTracksFromFirebase();
+            }, 2000);
+        } else {
+            showError(error.message || "Не удалось подключиться к серверу. Проверьте интернет-соединение.");
+            updateProgress(0, "ошибка загрузки", "попробуйте снова");
+        }
+    }
+}
+
+// Обработчик кнопки "Повторить"
+retryBtn.onclick = () => {
+    loadAttempts = 0;
+    loadTracksFromFirebase();
+};
+
+// Запускаем загрузку
+loadTracksFromFirebase();
+
+// Дополнительная проверка на очень медленное соединение
+let connectionTimeout = setTimeout(() => {
+    if (loadAttempts === 0 && document.querySelector('.loader-progress-fill').style.width !== '100%') {
+        loaderSubText.textContent = "медленное соединение, ожидание...";
+        loaderSubText.style.color = "#ffaa66";
+    }
+}, 8000);
+
+window.addEventListener('load', () => {
+    clearTimeout(connectionTimeout);
+});
+</script>
+</body>
+</html>
