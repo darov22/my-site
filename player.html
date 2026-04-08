@@ -771,6 +771,30 @@ const fsTrackArtistSpan = document.getElementById("fsTrackArtist");
 const fsCenterImg = document.getElementById("fsCenterImg");
 const vinylDisc = document.getElementById("vinylDisc");
 
+// Универсальная функция для обработки клика по прогресс-бару (для обоих режимов)
+function setupProgressSeek(progressElement, setCurrentTimeCallback) {
+    if (!progressElement) return;
+    const handleSeek = (e) => {
+        if (!audio.duration || isNaN(audio.duration)) return;
+        const rect = progressElement.getBoundingClientRect();
+        let clickX = e.clientX - rect.left;
+        if (clickX < 0) clickX = 0;
+        if (clickX > rect.width) clickX = rect.width;
+        const percent = clickX / rect.width;
+        const newTime = percent * audio.duration;
+        audio.currentTime = newTime;
+        if (setCurrentTimeCallback) setCurrentTimeCallback(newTime);
+    };
+    progressElement.addEventListener('click', handleSeek);
+    // Добавляем поддержку touch для мобильных устройств
+    progressElement.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const fakeEvent = { clientX: touch.clientX };
+        handleSeek(fakeEvent);
+    });
+}
+
 function syncFullscreenUI() {
     if(!tracks.length) return;
     const track = tracks[currentTrackIdx];
@@ -823,11 +847,10 @@ document.getElementById("closePlayerBtn").onclick = () => { playerDiv.classList.
 document.getElementById("expandFullscreenBtn").onclick = showFullscreen;
 fsBackBtn.onclick = hideFullscreen;
 
-fsProgress.addEventListener("click", (e) => {
-    const rect = fsProgress.getBoundingClientRect();
-    let perc = (e.clientX - rect.left) / rect.width;
-    if(audio.duration) audio.currentTime = perc * audio.duration;
-});
+// Настраиваем перемотку для обоих прогресс-баров
+setupProgressSeek(progress, (newTime) => { /* можно добавить доп логику */ });
+setupProgressSeek(fsProgress, (newTime) => { updateFsProgress(); });
+
 audio.addEventListener("timeupdate", () => { syncAllProgress(); if(fsPlayer.classList.contains("active")) updateFsProgress(); });
 audio.addEventListener("loadedmetadata", () => { if(audio.duration) { durationSpan.innerText = formatTime(audio.duration); fsDurationSpan.innerText = formatTime(audio.duration); } });
 audio.addEventListener("play", () => { playPauseBtn.innerText = "⏸"; fsPlayPauseBtn.innerText = "⏸"; fsPlayer.classList.add("playing"); });
